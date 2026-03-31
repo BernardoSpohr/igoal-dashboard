@@ -640,9 +640,19 @@ function renderAll() {
 
 /* ── KPIs ── */
 function renderKPIs() {
-  const open = FILT.filter(d => d.deal_stage !== 'won' && d.deal_stage !== 'lost');
-  const won  = FILT.filter(d => d.deal_stage === 'won');
-  const conv = FILT.length ? (won.length / FILT.length * 100) : 0;
+  const won    = FILT.filter(d => d.win === true || d.win === 1);
+  const lost   = FILT.filter(d => d.closed_at && d.win !== true && d.win !== 1);
+  const open   = FILT.filter(d => d.win !== true && d.win !== 1 && !d.closed_at);
+
+  // Conversion = won / (won + lost) — ignores still-open deals
+  const closed = won.length + lost.length;
+  const conv   = closed > 0 ? (won.length / closed * 100) : 0;
+
+  // Also calc overall from ALL data
+  const allWon  = RAW.deals.filter(d => d.win === true || d.win === 1);
+  const allLost = RAW.deals.filter(d => d.closed_at && d.win !== true && d.win !== 1);
+  const allClosed = allWon.length + allLost.length;
+  const convAll = allClosed > 0 ? (allWon.length / allClosed * 100) : 0;
 
   animN('v-leads', FILT.length);
   setEl('s-leads', FILT.length + ' negócios no período selecionado');
@@ -656,8 +666,21 @@ function renderKPIs() {
   const wonVal = won.reduce((s,d)=>s+(parseFloat(d.amount_total)||parseFloat(d.amount_montly)||parseFloat(d.amount)||0),0);
   setEl('s-won', 'R$ ' + fmtM(wonVal) + ' convertido');
 
-  setEl('v-conv', conv.toFixed(1) + '%');
-  setDelta('d-conv', conv >= 20 ? 'up' : 'down', conv.toFixed(1) + '%');
+  // DEBUG — mostra no console
+  console.log('Total RAW deals:', RAW.deals.length);
+  console.log('win=true count:', RAW.deals.filter(d=>d.win===true).length);
+  console.log('win=1 count:', RAW.deals.filter(d=>d.win===1).length);
+  console.log('win truthy count:', RAW.deals.filter(d=>!!d.win).length);
+  console.log('Sample win values:', RAW.deals.slice(0,5).map(d=>d.win));
+  console.log('FILT length:', FILT.length);
+  console.log('won in FILT:', won.length);
+
+  // Show period conv if available, else show overall
+  const displayConv = closed > 0 ? conv : convAll;
+  const convLabel   = closed > 0 ? conv.toFixed(1) + '%' : convAll.toFixed(1) + '% (geral)';
+  setEl('v-conv', displayConv.toFixed(1) + '%');
+  setEl('s-conv', closed > 0 ? 'ganhos ÷ fechados no período' : 'taxa geral · todos os períodos');
+  setDelta('d-conv', displayConv >= 20 ? 'up' : 'down', convLabel);
 }
 
 function setDelta(id, cls, txt) {
