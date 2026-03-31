@@ -601,9 +601,9 @@ function applyFilters() {
       if (ds !== stage) return false;
     }
     if (status !== 'all') {
-      if (status === 'won'  && !d.win)  return false;
-      if (status === 'lost' && !(d.closed_at && !d.win)) return false;
-      if (status === 'open' && (d.win || (d.closed_at && !d.win))) return false;
+      if (status === 'won'  && d.win !== true && d.win !== 1) return false;
+      if (status === 'lost' && !(d.closed_at && d.win !== true && d.win !== 1)) return false;
+      if (status === 'open' && (d.win === true || d.win === 1 || (d.closed_at && d.win !== true))) return false;
     }
     return true;
   });
@@ -649,11 +649,11 @@ function renderKPIs() {
   setDelta('d-leads', FILT.length > 10 ? 'up' : 'flat', FILT.length > 10 ? '↑ bom' : '—');
 
   animN('v-deals', open.length);
-  const openVal = open.reduce((s,d)=>s+(parseFloat(d.amount)||0),0);
+  const openVal = open.reduce((s,d)=>s+(parseFloat(d.amount_total)||parseFloat(d.amount_montly)||parseFloat(d.amount)||0),0);
   setEl('s-deals', 'R$ ' + fmtM(openVal) + ' em aberto');
 
   animN('v-won', won.length);
-  const wonVal = won.reduce((s,d)=>s+(parseFloat(d.amount)||0),0);
+  const wonVal = won.reduce((s,d)=>s+(parseFloat(d.amount_total)||parseFloat(d.amount_montly)||parseFloat(d.amount)||0),0);
   setEl('s-won', 'R$ ' + fmtM(wonVal) + ' convertido');
 
   setEl('v-conv', conv.toFixed(1) + '%');
@@ -668,9 +668,9 @@ function setDelta(id, cls, txt) {
 
 /* ── DONUT ── */
 function renderDonut() {
-  const won  = FILT.filter(d=>d.win===true).length;
-  const lost = FILT.filter(d=>d.closed_at&&!d.win).length;
-  const open = FILT.filter(d=>!d.win&&!d.closed_at).length;
+  const won  = FILT.filter(d=>d.win===true||d.win===1).length;
+  const lost = FILT.filter(d=>d.closed_at&&d.win!==true&&d.win!==1).length;
+  const open = FILT.filter(d=>d.win!==true&&d.win!==1&&!d.closed_at).length;
   const ctx  = document.getElementById('donutChart').getContext('2d');
   if (CHARTS.donut) CHARTS.donut.destroy();
   CHARTS.donut = new Chart(ctx, {
@@ -701,7 +701,7 @@ function renderLine() {
       const cd=new Date(x.created_at);
       return cd.getMonth()===d.getMonth()&&cd.getFullYear()===d.getFullYear();
     });
-    vals.push(lineMode==='deals'?m.length:m.reduce((s,x)=>s+(parseFloat(x.amount)||0),0));
+    vals.push(lineMode==='deals'?m.length:m.reduce((s,x)=>s+(parseFloat(x.amount_total)||parseFloat(x.amount_montly)||parseFloat(x.amount)||0),0));
   }
   const ctx=document.getElementById('lineChart').getContext('2d');
   if(CHARTS.line)CHARTS.line.destroy();
@@ -739,11 +739,11 @@ function renderRevenue(){
   for(let i=5;i>=0;i--){
     const d=new Date(now.getFullYear(),now.getMonth()-i,1);
     months.push(d.toLocaleDateString('pt-BR',{month:'short'}));
-    const m=FILT.filter(x=>x.win===true&&x.created_at&&(()=>{
+    const m=FILT.filter(x=>(x.win===true||x.win===1)&&x.created_at&&(()=>{
       const cd=new Date(x.created_at);
       return cd.getMonth()===d.getMonth()&&cd.getFullYear()===d.getFullYear();
     })());
-    vals.push(m.reduce((s,x)=>s+(parseFloat(x.amount)||0),0));
+    vals.push(m.reduce((s,x)=>s+(parseFloat(x.amount_total)||parseFloat(x.amount_montly)||parseFloat(x.amount)||0),0));
   }
   const ctx=document.getElementById('revChart').getContext('2d');
   if(CHARTS.rev)CHARTS.rev.destroy();
@@ -838,7 +838,7 @@ function buildDeals(rows){
   if(!rows.length){tbody.innerHTML='<tr><td colspan="6"><div class="empty"><div class="ei">💼</div><p>Nenhum negócio encontrado</p></div></td></tr>';return;}
   tbody.innerHTML=rows.map(d=>{
     const stageName=d.deal_stage&&typeof d.deal_stage==='object'?d.deal_stage.name:(d.deal_stage||'—');
-    const isWon=d.win===true;
+    const isWon=d.win===true||d.win===1;
     const isLost=d.closed_at&&!d.win;
     const lbl=isWon?'Ganho':isLost?'Perdido':'Aberto';
     const cls=isWon?'t-won':isLost?'t-lost':'t-open';
@@ -847,7 +847,7 @@ function buildDeals(rows){
     const enc=encodeURIComponent(JSON.stringify(d));
     return `<tr onclick="drillDeal('${enc}')">
       <td>${d.name||'—'}</td>
-      <td class="td-mono">R$ ${fmtM(d.amount||0)}</td>
+      <td class="td-mono">R$ ${fmtM(d.amount_total||d.amount_montly||d.amount||0)}</td>
       <td>${stageName}</td>
       <td><span class="tag ${cls}">${lbl}</span></td>
       <td>${resp}</td>
@@ -882,7 +882,7 @@ function renderTasks(){
 function drillDeal(enc){
   const d=JSON.parse(decodeURIComponent(enc));
   document.getElementById('modal-title').textContent=d.name||'Detalhes do Negócio';
-  const st=d.win?'✅ Ganho':(d.closed_at&&!d.win)?'❌ Perdido':'🔵 Aberto';
+  const st=(d.win===true||d.win===1)?'✅ Ganho':(d.closed_at&&d.win!==true&&d.win!==1)?'❌ Perdido':'🔵 Aberto';
   document.getElementById('modal-body').innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       ${fi('Nome',d.name||'—')}${fi('Valor','R$ '+fmtM(d.amount||0))}
@@ -904,8 +904,8 @@ function drillFunnel(stage){
         </tr></thead>
         <tbody>${rows.map(d=>`<tr style="border-bottom:1px solid rgba(226,230,239,0.5)">
           <td style="padding:9px 8px;font-weight:600;color:#0F1729">${d.name||'—'}</td>
-          <td style="padding:9px 8px;font-family:monospace">R$ ${fmtM(d.amount||0)}</td>
-          <td style="padding:9px 8px">${d.win?'✅ Ganho':(d.closed_at&&!d.win)?'❌ Perdido':'🔵 Aberto'}</td>
+          <td style="padding:9px 8px;font-family:monospace">R$ ${fmtM(d.amount_total||d.amount_montly||d.amount||0)}</td>
+          <td style="padding:9px 8px">${(d.win===true||d.win===1)?'✅ Ganho':(d.closed_at&&d.win!==true&&d.win!==1)?'❌ Perdido':'🔵 Aberto'}</td>
         </tr>`).join('')}</tbody>
       </table>`
     :'<div class="empty"><p>Sem negócios nessa etapa</p></div>';
