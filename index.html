@@ -139,7 +139,7 @@ body { font-family: var(--sans); background: var(--bg); color: var(--text); font
 .sec-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text3); }
 
 /* ── KPI ── */
-.kpi-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 0; }
+.kpi-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 0; }
 .kpi-card {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--r-lg); padding: 20px; box-shadow: var(--shadow-sm);
@@ -470,15 +470,13 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
       <div class="kpi-card orange fade-up">
         <div class="kpi-top"><div class="kpi-icon-wrap">🏆</div><div class="kpi-delta flat" id="d-won">—</div></div>
         <div class="kpi-label">Negócios Ganhos</div>
-        <div class="kpi-value" id="v-won">—</div>
+        <div style="display:flex;align-items:baseline;gap:8px;">
+          <div class="kpi-value" id="v-won">—</div>
+          <div style="font-size:16px;font-weight:700;color:#D97706;font-family:'Plus Jakarta Sans',sans-serif;" id="v-won-pct"></div>
+        </div>
         <div class="kpi-sub" id="s-won">carregando…</div>
       </div>
-      <div class="kpi-card slate fade-up">
-        <div class="kpi-top"><div class="kpi-icon-wrap">📊</div><div class="kpi-delta flat" id="d-conv">—</div></div>
-        <div class="kpi-label">Taxa de Conversão</div>
-        <div class="kpi-value" id="v-conv">—</div>
-        <div class="kpi-sub" id="s-conv">leads → ganhos</div>
-      </div>
+
     </div>
 
     <!-- CHARTS ROW 1 -->
@@ -903,23 +901,10 @@ function renderKPIs() {
   animN('v-won', won.length);
   const wonVal = won.reduce((s,d)=>s+(parseFloat(d.amount_total)||parseFloat(d.amount_montly)||parseFloat(d.amount)||0),0);
   const wonPct = FILT.length > 0 ? (won.length / FILT.length * 100).toFixed(1) : '0.0';
-  setEl('s-won', 'R$ ' + fmtM(wonVal) + ' convertido · ' + wonPct + '% do total');
-
-  // DEBUG — mostra no console
-  console.log('Total RAW deals:', RAW.deals.length);
-  console.log('win=true count:', RAW.deals.filter(d=>d.win===true).length);
-  console.log('win=1 count:', RAW.deals.filter(d=>d.win===1).length);
-  console.log('win truthy count:', RAW.deals.filter(d=>!!d.win).length);
-  console.log('Sample win values:', RAW.deals.slice(0,5).map(d=>d.win));
-  console.log('FILT length:', FILT.length);
-  console.log('won in FILT:', won.length);
-
-  // Show period conv if available, else show overall
-  const displayConv = closed > 0 ? conv : convAll;
-  const convLabel   = closed > 0 ? conv.toFixed(1) + '%' : convAll.toFixed(1) + '% (geral)';
-  setEl('v-conv', displayConv.toFixed(1) + '%');
-  setEl('s-conv', closed > 0 ? 'ganhos ÷ fechados no período' : 'taxa geral · todos os períodos');
-  setDelta('d-conv', displayConv >= 20 ? 'up' : 'down', convLabel);
+  const pctEl = document.getElementById('v-won-pct');
+  if (pctEl) pctEl.textContent = wonPct + '%';
+  setEl('s-won', 'R$ ' + fmtM(wonVal) + ' convertido');
+  setDelta('d-won', parseFloat(wonPct) >= 20 ? 'up' : 'flat', '↑ ' + wonPct + '%');
 }
 
 function setDelta(id, cls, txt) {
