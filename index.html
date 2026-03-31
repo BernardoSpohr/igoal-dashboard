@@ -530,13 +530,25 @@ async function proxyGet(endpoint) {
 
 async function fetchAll() {
   setLoadMsg('Buscando negócios…');
-  const [deals, tasks] = await Promise.all([
-    proxyGet('deals').catch(() => ({})),
-    proxyGet('tasks').catch(() => ({}))
-  ]);
-  // RD Station CRM retorna { deals: [...], total: N, has_more: bool }
-  RAW.deals = deals.deals ?? [];
+
+  // Busca todos os negócios com paginação
+  let allDeals = [];
+  let page = 1;
+  let hasMore = true;
+  while (hasMore) {
+    setLoadMsg(`Buscando negócios… (${allDeals.length} carregados)`);
+    const res = await proxyGet(`deals&page=${page}&limit=200`).catch(() => ({}));
+    const batch = res.deals ?? [];
+    allDeals = allDeals.concat(batch);
+    hasMore = res.has_more === true && batch.length > 0;
+    page++;
+    if (page > 20) break; // segurança: máx 4000 negócios
+  }
+
+  const tasks = await proxyGet('tasks').catch(() => ({}));
+  RAW.deals = allDeals;
   RAW.tasks  = tasks.tasks ?? [];
+  setLoadMsg(`${RAW.deals.length} negócios carregados!`);
 }
 
 /* ═══════════════════════════════════════
@@ -615,7 +627,10 @@ function applyFilters() {
   // rebuild stage filter
   const sel = document.getElementById('f-stage');
   const cur = sel.value;
-  const stages = [...new Set(RAW.deals.map(d => d.funnel_step_name || d.deal_stage || 'Sem etapa'))];
+  const stages = [...new Set(RAW.deals.map(d => {
+    if (d.deal_stage && typeof d.deal_stage === 'object') return d.deal_stage.name || 'Sem etapa';
+    return d.deal_stage || 'Sem etapa';
+  }).filter(Boolean))];
   sel.innerHTML = '<option value="all">Todas as Etapas</option>' +
     stages.map(s => `<option value="${s}">${s}</option>`).join('');
   if (stages.includes(cur)) sel.value = cur;
