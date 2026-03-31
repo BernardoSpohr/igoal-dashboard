@@ -597,13 +597,13 @@ function applyFilters() {
       if (cd && cd < cutoff) return false;
     }
     if (stage !== 'all') {
-      const ds = d.funnel_step_name || d.deal_stage || 'Sem etapa';
+      const ds = d.deal_stage && typeof d.deal_stage === 'object' ? d.deal_stage.name : (d.deal_stage || 'Sem etapa');
       if (ds !== stage) return false;
     }
     if (status !== 'all') {
-      if (status === 'won'  && d.deal_stage !== 'won')  return false;
-      if (status === 'lost' && d.deal_stage !== 'lost') return false;
-      if (status === 'open' && (d.deal_stage === 'won' || d.deal_stage === 'lost')) return false;
+      if (status === 'won'  && !d.win)  return false;
+      if (status === 'lost' && !(d.closed_at && !d.win)) return false;
+      if (status === 'open' && (d.win || (d.closed_at && !d.win))) return false;
     }
     return true;
   });
@@ -668,9 +668,9 @@ function setDelta(id, cls, txt) {
 
 /* ── DONUT ── */
 function renderDonut() {
-  const open = FILT.filter(d=>d.deal_stage!=='won'&&d.deal_stage!=='lost').length;
-  const won  = FILT.filter(d=>d.deal_stage==='won').length;
-  const lost = FILT.filter(d=>d.deal_stage==='lost').length;
+  const won  = FILT.filter(d=>d.win===true).length;
+  const lost = FILT.filter(d=>d.closed_at&&!d.win).length;
+  const open = FILT.filter(d=>!d.win&&!d.closed_at).length;
   const ctx  = document.getElementById('donutChart').getContext('2d');
   if (CHARTS.donut) CHARTS.donut.destroy();
   CHARTS.donut = new Chart(ctx, {
@@ -739,7 +739,7 @@ function renderRevenue(){
   for(let i=5;i>=0;i--){
     const d=new Date(now.getFullYear(),now.getMonth()-i,1);
     months.push(d.toLocaleDateString('pt-BR',{month:'short'}));
-    const m=FILT.filter(x=>x.deal_stage==='won'&&x.created_at&&(()=>{
+    const m=FILT.filter(x=>x.win===true&&x.created_at&&(()=>{
       const cd=new Date(x.created_at);
       return cd.getMonth()===d.getMonth()&&cd.getFullYear()===d.getFullYear();
     })());
@@ -768,7 +768,7 @@ function renderRevenue(){
 /* ── STAGE BARS ── */
 function renderStage(){
   const map={};
-  FILT.forEach(d=>{const s=d.funnel_step_name||d.deal_stage||'Sem etapa';map[s]=(map[s]||0)+1;});
+  FILT.forEach(d=>{const s=d.deal_stage&&typeof d.deal_stage==='object'?d.deal_stage.name:(d.deal_stage||'Sem etapa');map[s]=(map[s]||0)+1;});
   const labels=Object.keys(map).slice(0,8);
   const data=labels.map(l=>map[l]);
   const ctx=document.getElementById('stageChart').getContext('2d');
@@ -790,7 +790,7 @@ function renderStage(){
 /* ── FUNNEL ── */
 function renderFunnel(){
   const map={};
-  FILT.forEach(d=>{const s=d.funnel_step_name||d.deal_stage||'Sem etapa';map[s]=(map[s]||0)+1;});
+  FILT.forEach(d=>{const s=d.deal_stage&&typeof d.deal_stage==='object'?d.deal_stage.name:(d.deal_stage||'Sem etapa');map[s]=(map[s]||0)+1;});
   const sorted=Object.entries(map).sort((a,b)=>b[1]-a[1]);
   const wrap=document.getElementById('funnel-wrap');
   if(!sorted.length){wrap.innerHTML='<div class="empty"><div class="ei">📊</div><p>Sem dados</p></div>';return;}
@@ -812,7 +812,7 @@ function renderFunnel(){
 function renderOrigins(){
   const map={};
   FILT.forEach(d=>{
-    const src=d.lead_source||d.source||d.cf_origem||d.traffic_source||'Direto';
+    const src=(d.deal_source&&typeof d.deal_source==='object'?d.deal_source.name:d.deal_source)||d.lead_source||d.source||'Direto';
     map[src]=(map[src]||0)+1;
   });
   const sorted=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,7);
@@ -837,16 +837,18 @@ function buildDeals(rows){
   const tbody=document.getElementById('deals-body');
   if(!rows.length){tbody.innerHTML='<tr><td colspan="6"><div class="empty"><div class="ei">💼</div><p>Nenhum negócio encontrado</p></div></td></tr>';return;}
   tbody.innerHTML=rows.map(d=>{
-    const st=d.deal_stage||'open';
-    const lbl=st==='won'?'Ganho':st==='lost'?'Perdido':'Aberto';
-    const cls=st==='won'?'t-won':st==='lost'?'t-lost':'t-open';
+    const stageName=d.deal_stage&&typeof d.deal_stage==='object'?d.deal_stage.name:(d.deal_stage||'—');
+    const isWon=d.win===true;
+    const isLost=d.closed_at&&!d.win;
+    const lbl=isWon?'Ganho':isLost?'Perdido':'Aberto';
+    const cls=isWon?'t-won':isLost?'t-lost':'t-open';
     const dt=d.created_at?new Date(d.created_at).toLocaleDateString('pt-BR'):'—';
     const resp=d.user?.name||d.responsible_name||'—';
     const enc=encodeURIComponent(JSON.stringify(d));
     return `<tr onclick="drillDeal('${enc}')">
       <td>${d.name||'—'}</td>
       <td class="td-mono">R$ ${fmtM(d.amount||0)}</td>
-      <td>${d.funnel_step_name||st||'—'}</td>
+      <td>${stageName}</td>
       <td><span class="tag ${cls}">${lbl}</span></td>
       <td>${resp}</td>
       <td class="td-mono">${dt}</td>
@@ -880,7 +882,7 @@ function renderTasks(){
 function drillDeal(enc){
   const d=JSON.parse(decodeURIComponent(enc));
   document.getElementById('modal-title').textContent=d.name||'Detalhes do Negócio';
-  const st=d.deal_stage==='won'?'✅ Ganho':d.deal_stage==='lost'?'❌ Perdido':'🔵 Aberto';
+  const st=d.win?'✅ Ganho':(d.closed_at&&!d.win)?'❌ Perdido':'🔵 Aberto';
   document.getElementById('modal-body').innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
       ${fi('Nome',d.name||'—')}${fi('Valor','R$ '+fmtM(d.amount||0))}
@@ -891,7 +893,7 @@ function drillDeal(enc){
   document.getElementById('modal').classList.add('open');
 }
 function drillFunnel(stage){
-  const rows=FILT.filter(d=>(d.funnel_step_name||d.deal_stage||'Sem etapa')===stage);
+  const rows=FILT.filter(d=>(d.deal_stage&&typeof d.deal_stage==='object'?d.deal_stage.name:(d.deal_stage||'Sem etapa'))===stage);
   document.getElementById('modal-title').textContent=`${stage} — ${rows.length} negócios`;
   document.getElementById('modal-body').innerHTML=rows.length
     ?`<table style="width:100%;border-collapse:collapse;font-size:12px">
@@ -903,7 +905,7 @@ function drillFunnel(stage){
         <tbody>${rows.map(d=>`<tr style="border-bottom:1px solid rgba(226,230,239,0.5)">
           <td style="padding:9px 8px;font-weight:600;color:#0F1729">${d.name||'—'}</td>
           <td style="padding:9px 8px;font-family:monospace">R$ ${fmtM(d.amount||0)}</td>
-          <td style="padding:9px 8px">${d.deal_stage==='won'?'✅ Ganho':d.deal_stage==='lost'?'❌ Perdido':'🔵 Aberto'}</td>
+          <td style="padding:9px 8px">${d.win?'✅ Ganho':(d.closed_at&&!d.win)?'❌ Perdido':'🔵 Aberto'}</td>
         </tr>`).join('')}</tbody>
       </table>`
     :'<div class="empty"><p>Sem negócios nessa etapa</p></div>';
