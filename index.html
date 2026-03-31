@@ -323,17 +323,23 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
 @media(max-width:900px){
   .sidebar { display: none; }
 }
-/* ── SIDEBAR ── */
-.layout { display: flex; min-height: calc(100vh - 60px); }
+/* ── SIDEBAR DRAWER ── */
+.layout { display: flex; min-height: calc(100vh - 60px); position: relative; }
 .sidebar {
-  width: 210px; flex-shrink: 0;
+  position: fixed;
+  top: 60px; left: 0;
+  width: 220px;
+  height: calc(100vh - 60px);
   background: var(--primary);
   display: flex; flex-direction: column;
   padding: 20px 0;
-  position: sticky; top: 60px;
-  height: calc(100vh - 60px);
   overflow-y: auto;
+  z-index: 200;
+  transform: translateX(-100%);
+  transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 4px 0 24px rgba(15,23,41,0.25);
 }
+.sidebar.open { transform: translateX(0); }
 .sidebar-label {
   font-size: 9px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.12em; color: rgba(255,255,255,0.3);
@@ -357,8 +363,9 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
 .tab-section { display: none; }
 .tab-section.active { display: block; }
 
+
+
 @media(max-width:1100px){ .kpi-grid{grid-template-columns:repeat(2,1fr);} .row-2-1{grid-template-columns:1fr;} }
-@media(max-width:900px){ .sidebar{display:none;} }
 @media(max-width:680px){ .main{padding:16px;} .topbar,.filter-bar{padding:0 16px;} .kpi-grid{grid-template-columns:1fr 1fr;} .row-1-1{grid-template-columns:1fr;} }
 </style>
 </head>
@@ -418,7 +425,7 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
 <div id="app">
   <nav class="topbar">
     <div class="tb-left">
-      <div class="tb-brand"><div class="logo-mark">iG</div>iGoal Tecnologias</div>
+      <div class="tb-brand" id="logo-trigger"><div class="logo-mark">iG</div>iGoal Tecnologias</div>
       <div class="tb-badge">BI Dashboard</div>
     </div>
     <div class="tb-right">
@@ -437,7 +444,7 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
 
   <div class="layout">
     <!-- SIDEBAR -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="app-sidebar">
       <span class="sidebar-label">Navegação</span>
       <div class="sidebar-section">
         <div class="nav-item active" onclick="switchTab('overview')" id="nav-overview">
@@ -1295,8 +1302,61 @@ function fi(label,val){
 }
 function esc(s){return s.replace(/'/g,"\'");}
 
+/* ── SIDEBAR DRAWER ── */
+let sidebarTimer = null;
+
+function openSidebar() {
+  clearTimeout(sidebarTimer);
+  document.getElementById('app-sidebar').classList.add('open');
+}
+
+function closeSidebarDelayed() {
+  sidebarTimer = setTimeout(() => {
+    document.getElementById('app-sidebar').classList.remove('open');
+  }, 300);
+}
+
+function toggleSidebar() {
+  const s = document.getElementById('app-sidebar');
+  s.classList.toggle('open');
+}
+
+// Keep sidebar open when mouse is over it
+document.addEventListener('DOMContentLoaded', () => {
+  const sidebar = document.getElementById('app-sidebar');
+  if (sidebar) {
+    sidebar.addEventListener('mouseenter', () => clearTimeout(sidebarTimer));
+    sidebar.addEventListener('mouseleave', () => closeSidebarDelayed());
+  }
+  const logo = document.getElementById('logo-trigger');
+  if (logo) {
+    logo.addEventListener('mouseleave', () => closeSidebarDelayed());
+  }
+});
+
+/* ── SIDEBAR DRAWER ── */
+let sidebarTimer = null;
+
+function openSidebar() {
+  clearTimeout(sidebarTimer);
+  document.getElementById('app-sidebar').classList.add('open');
+}
+
+function closeSidebarDelayed() {
+  sidebarTimer = setTimeout(() => {
+    document.getElementById('app-sidebar').classList.remove('open');
+  }, 300);
+}
+
+function toggleSidebar() {
+  const s = document.getElementById('app-sidebar');
+  s.classList.toggle('open');
+}
+
 /* ── TAB NAVIGATION ── */
 function switchTab(tab) {
+  // Close sidebar after selecting
+  setTimeout(() => document.getElementById('app-sidebar').classList.remove('open'), 200);
   // Hide all tabs
   document.querySelectorAll('.tab-section').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -1368,6 +1428,18 @@ function checkAuth() {
 window.addEventListener('DOMContentLoaded',()=>{
   Chart.defaults.font.family="'Plus Jakarta Sans', sans-serif";
   if (checkAuth()) init();
+
+  // Sidebar — abre quando mouse vai para borda esquerda (primeiros 8px)
+  const sidebar = document.getElementById('app-sidebar');
+  if (sidebar) {
+    sidebar.addEventListener('mouseenter', () => clearTimeout(sidebarTimer));
+    sidebar.addEventListener('mouseleave', () => closeSidebarDelayed());
+  }
+  document.addEventListener('mousemove', (e) => {
+    if (e.clientX <= 8) {
+      openSidebar();
+    }
+  });
 });
 </script>
 </body>
