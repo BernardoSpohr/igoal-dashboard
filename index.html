@@ -279,50 +279,7 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
 @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 .fade-up { animation: fadeUp 0.35s ease both; }
 
-/* ── SIDEBAR ── */
-.layout { display: flex; min-height: 100vh; }
-.sidebar {
-  width: 220px; flex-shrink: 0;
-  background: var(--primary);
-  display: flex; flex-direction: column;
-  padding: 24px 0;
-  position: sticky; top: 60px;
-  height: calc(100vh - 60px);
-  overflow-y: auto;
-}
-.sidebar-section { padding: 0 16px; margin-bottom: 8px; }
-.sidebar-label {
-  font-size: 9px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.12em; color: rgba(255,255,255,0.3);
-  padding: 0 12px; margin-bottom: 6px; margin-top: 16px;
-  display: block;
-}
-.nav-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px; border-radius: 8px;
-  color: rgba(255,255,255,0.55); font-size: 13px; font-weight: 500;
-  cursor: pointer; transition: all 0.15s; margin-bottom: 2px;
-  user-select: none;
-}
-.nav-item:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.85); }
-.nav-item.active { background: rgba(255,255,255,0.12); color: #fff; font-weight: 600; }
-.nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
-.nav-divider { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 12px 16px; }
-.sidebar-footer {
-  margin-top: auto; padding: 16px;
-  font-size: 10px; color: rgba(255,255,255,0.2);
-  text-align: center; line-height: 1.5;
-}
-.main-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
-/* Tab sections */
-.tab-section { display: none; }
-.tab-section.active { display: block; }
-
-/* ── RESPONSIVE ── */
-@media(max-width:900px){
-  .sidebar { display: none; }
-}
 /* ── SIDEBAR DRAWER ── */
 .layout { display: flex; min-height: calc(100vh - 60px); position: relative; }
 .sidebar {
@@ -1301,38 +1258,6 @@ function fi(label,val){
   </div>`;
 }
 function esc(s){return s.replace(/'/g,"\'");}
-
-/* ── SIDEBAR DRAWER ── */
-let sidebarTimer = null;
-
-function openSidebar() {
-  clearTimeout(sidebarTimer);
-  document.getElementById('app-sidebar').classList.add('open');
-}
-
-function closeSidebarDelayed() {
-  sidebarTimer = setTimeout(() => {
-    document.getElementById('app-sidebar').classList.remove('open');
-  }, 300);
-}
-
-function toggleSidebar() {
-  const s = document.getElementById('app-sidebar');
-  s.classList.toggle('open');
-}
-
-// Keep sidebar open when mouse is over it
-document.addEventListener('DOMContentLoaded', () => {
-  const sidebar = document.getElementById('app-sidebar');
-  if (sidebar) {
-    sidebar.addEventListener('mouseenter', () => clearTimeout(sidebarTimer));
-    sidebar.addEventListener('mouseleave', () => closeSidebarDelayed());
-  }
-  const logo = document.getElementById('logo-trigger');
-  if (logo) {
-    logo.addEventListener('mouseleave', () => closeSidebarDelayed());
-  }
-});
 
 /* ── SIDEBAR DRAWER ── */
 let sidebarTimer = null;
