@@ -879,19 +879,9 @@ function renderAll() {
 
 /* ── KPIs ── */
 function renderKPIs() {
-  const won    = FILT.filter(d => d.win === true || d.win === 1);
-  const lost   = FILT.filter(d => d.closed_at && d.win !== true && d.win !== 1);
-  const open   = FILT.filter(d => d.win !== true && d.win !== 1 && !d.closed_at);
-
-  // Conversion = won / (won + lost) — ignores still-open deals
-  const closed = won.length + lost.length;
-  const conv   = closed > 0 ? (won.length / closed * 100) : 0;
-
-  // Also calc overall from ALL data
-  const allWon  = RAW.deals.filter(d => d.win === true || d.win === 1);
-  const allLost = RAW.deals.filter(d => d.closed_at && d.win !== true && d.win !== 1);
-  const allClosed = allWon.length + allLost.length;
-  const convAll = allClosed > 0 ? (allWon.length / allClosed * 100) : 0;
+  const won  = FILT.filter(d => d.win === true || d.win === 1);
+  const lost = FILT.filter(d => d.closed_at && d.win !== true && d.win !== 1);
+  const open = FILT.filter(d => d.win !== true && d.win !== 1 && !d.closed_at);
 
   animN('v-leads', FILT.length);
   setEl('s-leads', FILT.length + ' negócios no período selecionado');
@@ -905,14 +895,11 @@ function renderKPIs() {
   const wonVal = won.reduce((s,d)=>s+(parseFloat(d.amount_total)||parseFloat(d.amount_montly)||parseFloat(d.amount)||0),0);
   setEl('s-won', 'R$ ' + fmtM(wonVal) + ' convertido');
   setDelta('d-won', won.length > 0 ? 'up' : 'flat', won.length > 0 ? '↑ bom' : '—');
-  // Remove % from won KPI if it exists
-  const wonPctEl = document.getElementById('v-won-pct');
-  if (wonPctEl) wonPctEl.textContent = '';
 
   // Taxa de conversão = ganhos ÷ total de negócios do período
   const conv = FILT.length > 0 ? (won.length / FILT.length * 100) : 0;
-  const convAll = RAW.deals.length > 0 ? (RAW.deals.filter(d=>d.win===true||d.win===1).length / RAW.deals.length * 100) : 0;
-  const displayConv = FILT.length > 0 ? conv : convAll;
+  const convGeral = RAW.deals.length > 0 ? (RAW.deals.filter(d=>d.win===true||d.win===1).length / RAW.deals.length * 100) : 0;
+  const displayConv = FILT.length > 0 ? conv : convGeral;
   setEl('v-conv', displayConv.toFixed(1) + '%');
   setEl('s-conv', 'ganhos ÷ total no período');
   setDelta('d-conv', displayConv >= 20 ? 'up' : 'down', displayConv.toFixed(1) + '%');
