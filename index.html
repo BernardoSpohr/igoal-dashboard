@@ -280,45 +280,7 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
 .fade-up { animation: fadeUp 0.35s ease both; }
 
 
-/* ── SIDEBAR DRAWER ── */
-.layout { display: flex; min-height: calc(100vh - 60px); position: relative; }
-.sidebar {
-  position: fixed;
-  top: 60px; left: 0;
-  width: 220px;
-  height: calc(100vh - 60px);
-  background: var(--primary);
-  display: flex; flex-direction: column;
-  padding: 20px 0;
-  overflow-y: auto;
-  z-index: 200;
-  transform: translateX(-100%);
-  transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
-  box-shadow: 4px 0 24px rgba(15,23,41,0.25);
-}
-.sidebar.open { transform: translateX(0); }
-.sidebar-label {
-  font-size: 9px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.12em; color: rgba(255,255,255,0.3);
-  padding: 0 16px; margin-bottom: 6px; margin-top: 12px;
-  display: block;
-}
-.nav-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 16px; margin: 1px 8px;
-  border-radius: 8px;
-  color: rgba(255,255,255,0.55); font-size: 13px; font-weight: 500;
-  cursor: pointer; transition: all 0.15s;
-  user-select: none;
-}
-.nav-item:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.85); }
-.nav-item.active { background: rgba(255,255,255,0.13); color: #fff; font-weight: 600; }
-.nav-icon { font-size: 15px; width: 20px; text-align: center; }
-.nav-divider { border: none; border-top: 1px solid rgba(255,255,255,0.07); margin: 10px 16px; }
-.sidebar-footer { margin-top: auto; padding: 16px; font-size: 10px; color: rgba(255,255,255,0.2); text-align: center; line-height: 1.5; }
-.main-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.tab-section { display: none; }
-.tab-section.active { display: block; }
+
 
 
 
@@ -399,34 +361,7 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
     </div>
   </nav>
 
-  <div class="layout">
-    <!-- SIDEBAR -->
-    <aside class="sidebar" id="app-sidebar">
-      <span class="sidebar-label">Navegação</span>
-      <div class="sidebar-section">
-        <div class="nav-item active" onclick="switchTab('overview')" id="nav-overview">
-          <span class="nav-icon">🏠</span> Visão Geral
-        </div>
-        <div class="nav-item" onclick="switchTab('sales')" id="nav-sales">
-          <span class="nav-icon">💼</span> Vendas
-        </div>
-        <div class="nav-item" onclick="switchTab('marketing')" id="nav-marketing">
-          <span class="nav-icon">📣</span> Marketing
-        </div>
-      </div>
-      <hr class="nav-divider">
-      <span class="sidebar-label">Atividades</span>
-      <div class="sidebar-section">
-        <div class="nav-item" onclick="switchTab('tasks')" id="nav-tasks">
-          <span class="nav-icon">✅</span> Tarefas
-        </div>
-      </div>
-      <div class="sidebar-footer">
-        iGoal Tecnologias<br>BI Dashboard
-      </div>
-    </aside>
 
-    <div class="main-wrap">
   <div class="filter-bar">
     <span class="filter-label">Filtros</span>
     <select class="filter-select" id="f-period" onchange="applyFilters()">
@@ -452,7 +387,7 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
   <div class="main">
 
     <!-- ═══ TAB: VISÃO GERAL ═══ -->
-    <div class="tab-section active" id="tab-overview">
+    
     <div class="sec-head"><div class="sec-title">Visão Geral · KPIs Executivos</div></div>
     <div class="kpi-grid" style="margin-bottom:28px">
       <div class="kpi-card blue fade-up">
@@ -501,10 +436,10 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
       </div>
     </div>
 
-    </div><!-- /tab-overview -->
+
 
     <!-- ═══ TAB: VENDAS ═══ -->
-    <div class="tab-section" id="tab-sales">
+    
     <div class="sec-head"><div class="sec-title">Vendas · Funil &amp; Pipeline</div></div>
     <div class="row-1-1">
       <div class="chart-card">
@@ -575,10 +510,10 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
       </div>
     </div>
 
-    </div><!-- /tab-sales -->
+
 
     <!-- ═══ TAB: MARKETING ═══ -->
-    <div class="tab-section" id="tab-marketing">
+    
     <div class="sec-head"><div class="sec-title">Marketing · Aquisição de Leads</div></div>
     <div class="row-2-1">
       <div class="chart-card">
@@ -607,10 +542,10 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
         <div class="chart-h h250"><canvas id="originRevChart"></canvas></div>
       </div>
     </div>
-    </div><!-- /tab-marketing -->
+
 
     <!-- ═══ TAB: TAREFAS ═══ -->
-    <div class="tab-section" id="tab-tasks">
+    
     <div class="sec-head"><div class="sec-title">Atividades · Tarefas Pendentes</div></div>
     <div class="table-card">
       <div class="table-top">
@@ -623,11 +558,10 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
         </table>
       </div>
     </div>
-    </div><!-- /tab-tasks -->
+
 
   </div><!-- /main -->
-    </div><!-- /main-wrap -->
-  </div><!-- /layout -->
+
 </div><!-- /app -->
 
 <!-- MODAL -->
@@ -1242,43 +1176,7 @@ function fi(label,val){
 }
 function esc(s){return s.replace(/'/g,"\'");}
 
-/* ── SIDEBAR DRAWER ── */
-let sidebarTimer = null;
 
-function openSidebar() {
-  clearTimeout(sidebarTimer);
-  document.getElementById('app-sidebar').classList.add('open');
-}
-
-function closeSidebarDelayed() {
-  sidebarTimer = setTimeout(() => {
-    document.getElementById('app-sidebar').classList.remove('open');
-  }, 300);
-}
-
-function toggleSidebar() {
-  const s = document.getElementById('app-sidebar');
-  s.classList.toggle('open');
-}
-
-/* ── TAB NAVIGATION ── */
-function switchTab(tab) {
-  // Close sidebar after selecting
-  setTimeout(() => document.getElementById('app-sidebar').classList.remove('open'), 200);
-  // Hide all tabs
-  document.querySelectorAll('.tab-section').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  // Show selected
-  document.getElementById('tab-' + tab).classList.add('active');
-  document.getElementById('nav-' + tab).classList.add('active');
-  // Re-render charts in case they were hidden
-  setTimeout(() => {
-    renderLine();
-    if (tab === 'sales') { renderStage(); renderRevenue(); }
-    if (tab === 'marketing') { renderDonut(); renderOrigins(); renderOriginRev(); }
-    if (tab === 'overview') { renderDonut(); }
-  }, 50);
-}
 
 /* ── ORIGIN REVENUE CHART ── */
 function renderOriginRev() {
@@ -1337,17 +1235,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   Chart.defaults.font.family="'Plus Jakarta Sans', sans-serif";
   if (checkAuth()) init();
 
-  // Sidebar — abre quando mouse vai para borda esquerda (primeiros 8px)
-  const sidebar = document.getElementById('app-sidebar');
-  if (sidebar) {
-    sidebar.addEventListener('mouseenter', () => clearTimeout(sidebarTimer));
-    sidebar.addEventListener('mouseleave', () => closeSidebarDelayed());
-  }
-  document.addEventListener('mousemove', (e) => {
-    if (e.clientX <= 8) {
-      openSidebar();
-    }
-  });
+
 });
 </script>
 </body>
