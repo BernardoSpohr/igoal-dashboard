@@ -905,6 +905,9 @@ function renderKPIs() {
   const wonVal = won.reduce((s,d)=>s+(parseFloat(d.amount_total)||parseFloat(d.amount_montly)||parseFloat(d.amount)||0),0);
   setEl('s-won', 'R$ ' + fmtM(wonVal) + ' convertido');
   setDelta('d-won', won.length > 0 ? 'up' : 'flat', won.length > 0 ? '↑ bom' : '—');
+  // Remove % from won KPI if it exists
+  const wonPctEl = document.getElementById('v-won-pct');
+  if (wonPctEl) wonPctEl.textContent = '';
 
   // Taxa de conversão = ganhos ÷ total de negócios do período
   const conv = FILT.length > 0 ? (won.length / FILT.length * 100) : 0;
