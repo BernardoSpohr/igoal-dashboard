@@ -458,9 +458,35 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
     <!-- TABLE DEALS -->
     <div class="sec-head"><div class="sec-title">Detalhamento · Negócios</div></div>
     <div class="table-card">
-      <div class="table-top">
+      <div class="table-top" style="flex-wrap:wrap;gap:10px;">
         <div><div class="card-title">Lista de Negócios</div><div class="card-sub">Clique em uma linha para detalhes</div></div>
-        <input class="search-inp" placeholder="🔍 Buscar negócio…" oninput="filterDeals(this.value)" />
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <input class="search-inp" placeholder="🔍 Buscar negócio…" oninput="applyTableFilters()" id="tbl-search" />
+          <select class="filter-select" id="tbl-date" onchange="applyTableFilters()" style="font-size:12px;padding:7px 28px 7px 10px;">
+            <option value="all">Qualquer data</option>
+            <option value="7">Últimos 7 dias</option>
+            <option value="30">Últimos 30 dias</option>
+            <option value="90">Últimos 90 dias</option>
+            <option value="180">Últimos 6 meses</option>
+            <option value="365">Último ano</option>
+          </select>
+          <select class="filter-select" id="tbl-value" onchange="applyTableFilters()" style="font-size:12px;padding:7px 28px 7px 10px;">
+            <option value="all">Qualquer valor</option>
+            <option value="0-1000">Até R$ 1K</option>
+            <option value="1000-10000">R$ 1K – 10K</option>
+            <option value="10000-50000">R$ 10K – 50K</option>
+            <option value="50000-200000">R$ 50K – 200K</option>
+            <option value="200000+">Acima de R$ 200K</option>
+          </select>
+          <select class="filter-select" id="tbl-sort" onchange="applyTableFilters()" style="font-size:12px;padding:7px 28px 7px 10px;">
+            <option value="date-desc">Mais recentes</option>
+            <option value="date-asc">Mais antigos</option>
+            <option value="value-desc">Maior valor</option>
+            <option value="value-asc">Menor valor</option>
+            <option value="name-asc">Nome A-Z</option>
+          </select>
+          <span id="tbl-count" style="font-size:11px;color:#9CA3AF;white-space:nowrap;"></span>
+        </div>
       </div>
       <div class="t-scroll">
         <table>
@@ -869,11 +895,60 @@ function renderOrigins(){
 /* ── DEALS TABLE ── */
 function renderDeals(){
   allDealsRows=[...FILT];
-  buildDeals(allDealsRows.slice(0,60));
+  applyTableFilters();
+}
+function applyTableFilters(){
+  const q      = (document.getElementById('tbl-search')?.value||'').toLowerCase();
+  const days   = document.getElementById('tbl-date')?.value||'all';
+  const valR   = document.getElementById('tbl-value')?.value||'all';
+  const sort   = document.getElementById('tbl-sort')?.value||'date-desc';
+
+  let rows = [...allDealsRows];
+
+  // Search filter
+  if(q) rows = rows.filter(d=>(d.name||'').toLowerCase().includes(q));
+
+  // Date filter
+  if(days!=='all'){
+    const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-parseInt(days));
+    rows=rows.filter(d=>d.created_at&&new Date(d.created_at)>=cutoff);
+  }
+
+  // Value filter
+  if(valR!=='all'){
+    if(valR==='200000+'){
+      rows=rows.filter(d=>(parseFloat(d.amount_total||d.amount_montly||d.amount)||0)>=200000);
+    } else {
+      const [min,max]=valR.split('-').map(Number);
+      rows=rows.filter(d=>{
+        const v=parseFloat(d.amount_total||d.amount_montly||d.amount)||0;
+        return v>=min&&v<max;
+      });
+    }
+  }
+
+  // Sort
+  rows.sort((a,b)=>{
+    const va=parseFloat(a.amount_total||a.amount_montly||a.amount)||0;
+    const vb=parseFloat(b.amount_total||b.amount_montly||b.amount)||0;
+    const da=a.created_at?new Date(a.created_at):new Date(0);
+    const db=b.created_at?new Date(b.created_at):new Date(0);
+    if(sort==='date-desc') return db-da;
+    if(sort==='date-asc')  return da-db;
+    if(sort==='value-desc')return vb-va;
+    if(sort==='value-asc') return va-vb;
+    if(sort==='name-asc')  return (a.name||'').localeCompare(b.name||'');
+    return 0;
+  });
+
+  const el=document.getElementById('tbl-count');
+  if(el) el.textContent=`${rows.length} negócio${rows.length!==1?'s':''}`;
+
+  buildDeals(rows.slice(0,100));
 }
 function buildDeals(rows){
   const tbody=document.getElementById('deals-body');
-  if(!rows.length){tbody.innerHTML='<tr><td colspan="6"><div class="empty"><div class="ei">💼</div><p>Nenhum negócio encontrado</p></div></td></tr>';return;}
+  if(!rows.length){tbody.innerHTML='<tr><td colspan="6"><div class="empty"><div class="ei">💼</div><p>Nenhum negócio encontrado com esses filtros</p></div></td></tr>';return;}
   tbody.innerHTML=rows.map(d=>{
     const stageName=d.deal_stage&&typeof d.deal_stage==='object'?d.deal_stage.name:(d.deal_stage||'—');
     const isWon=d.win===true||d.win===1;
@@ -892,11 +967,6 @@ function buildDeals(rows){
       <td class="td-mono">${dt}</td>
     </tr>`;
   }).join('');
-}
-function filterDeals(q){
-  if(!q){buildDeals(allDealsRows.slice(0,60));return;}
-  const lq=q.toLowerCase();
-  buildDeals(allDealsRows.filter(d=>(d.name||'').toLowerCase().includes(lq)).slice(0,60));
 }
 
 /* ── TASKS TABLE ── */
