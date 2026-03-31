@@ -554,10 +554,45 @@ async function proxyGet(endpoint) {
   return JSON.parse(txt.trim());
 }
 
+const CACHE_KEY = 'ig_deals_cache';
+const CACHE_TTL  = 5 * 60 * 1000; // 5 minutos
+
+function saveCache(deals, tasks) {
+  try {
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+      deals, tasks, ts: Date.now()
+    }));
+  } catch(e) {}
+}
+
+function loadCache() {
+  try {
+    const raw = sessionStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const c = JSON.parse(raw);
+    if (Date.now() - c.ts > CACHE_TTL) return null;
+    return c;
+  } catch(e) { return null; }
+}
+
 async function fetchAll() {
   setLoadMsg('Carregando dashboard…');
 
-  // Busca página 1 + tarefas simultaneamente para iniciar rápido
+  // Tenta carregar do cache primeiro → abre instantâneo
+  const cache = loadCache();
+  if (cache) {
+    RAW.deals = cache.deals;
+    RAW.tasks  = cache.tasks;
+    hide('loading-screen');
+    show('app', 'flex');
+    applyFilters();
+    startAuto();
+    // Atualiza em segundo plano silenciosamente
+    fetchAndCache(true);
+    return;
+  }
+
+  // Sem cache: busca normal
   const [firstPage, tasks] = await Promise.all([
     proxyGet('deals&page=1&limit=200').catch(() => ({})),
     proxyGet('tasks').catch(() => ({}))
@@ -565,16 +600,36 @@ async function fetchAll() {
 
   RAW.deals = firstPage.deals ?? [];
   RAW.tasks  = tasks.tasks ?? [];
+  saveCache(RAW.deals, RAW.tasks);
 
-  // Renderiza imediatamente com os primeiros dados
   hide('loading-screen');
   show('app', 'flex');
   applyFilters();
   startAuto();
 
-  // Busca o restante em segundo plano se houver mais páginas
   if (firstPage.has_more === true) {
     fetchRemainingDeals(2);
+  }
+}
+
+async function fetchAndCache(silent) {
+  try {
+    const [firstPage, tasks] = await Promise.all([
+      proxyGet('deals&page=1&limit=200').catch(() => ({})),
+      proxyGet('tasks').catch(() => ({}))
+    ]);
+    RAW.deals = firstPage.deals ?? [];
+    RAW.tasks  = tasks.tasks ?? [];
+    saveCache(RAW.deals, RAW.tasks);
+    if (!silent) {
+      hide('loading-screen');
+      show('app', 'flex');
+      startAuto();
+    }
+    applyFilters();
+    if (firstPage.has_more === true) fetchRemainingDeals(2);
+  } catch(e) {
+    if (!silent) throw e;
   }
 }
 
@@ -606,7 +661,6 @@ async function init() {
   hide('app');
   try {
     await fetchAll();
-    // fetchAll já chama hide/show/applyFilters/startAuto internamente
   } catch(e) {
     hide('loading-screen');
     show('error-screen', 'flex');
@@ -622,17 +676,17 @@ async function refresh() {
   const btn = document.getElementById('ref-btn');
   btn.classList.add('spin');
   try {
-    // Busca página 1 rápido
+    sessionStorage.removeItem(CACHE_KEY); // limpa cache ao atualizar manualmente
     const [firstPage, tasks] = await Promise.all([
       proxyGet('deals&page=1&limit=200').catch(() => ({})),
       proxyGet('tasks').catch(() => ({}))
     ]);
     RAW.deals = firstPage.deals ?? [];
     RAW.tasks  = tasks.tasks ?? [];
+    saveCache(RAW.deals, RAW.tasks);
     applyFilters();
     setStatus(true);
     btn.classList.remove('spin');
-    // Restante em segundo plano
     if (firstPage.has_more === true) fetchRemainingDeals(2);
   } catch {
     setStatus(false);
