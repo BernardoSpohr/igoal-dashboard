@@ -787,7 +787,8 @@ function renderKPIs() {
 
   animN('v-won', won.length);
   const wonVal = won.reduce((s,d)=>s+(parseFloat(d.amount_total)||parseFloat(d.amount_montly)||parseFloat(d.amount)||0),0);
-  setEl('s-won', 'R$ ' + fmtM(wonVal) + ' convertido');
+  const wonPct = FILT.length > 0 ? (won.length / FILT.length * 100).toFixed(1) : '0.0';
+  setEl('s-won', 'R$ ' + fmtM(wonVal) + ' convertido · ' + wonPct + '% do total');
 
   // DEBUG — mostra no console
   console.log('Total RAW deals:', RAW.deals.length);
