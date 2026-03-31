@@ -279,8 +279,86 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
 @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 .fade-up { animation: fadeUp 0.35s ease both; }
 
+/* ── SIDEBAR ── */
+.layout { display: flex; min-height: 100vh; }
+.sidebar {
+  width: 220px; flex-shrink: 0;
+  background: var(--primary);
+  display: flex; flex-direction: column;
+  padding: 24px 0;
+  position: sticky; top: 60px;
+  height: calc(100vh - 60px);
+  overflow-y: auto;
+}
+.sidebar-section { padding: 0 16px; margin-bottom: 8px; }
+.sidebar-label {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.12em; color: rgba(255,255,255,0.3);
+  padding: 0 12px; margin-bottom: 6px; margin-top: 16px;
+  display: block;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 8px;
+  color: rgba(255,255,255,0.55); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s; margin-bottom: 2px;
+  user-select: none;
+}
+.nav-item:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.85); }
+.nav-item.active { background: rgba(255,255,255,0.12); color: #fff; font-weight: 600; }
+.nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+.nav-divider { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 12px 16px; }
+.sidebar-footer {
+  margin-top: auto; padding: 16px;
+  font-size: 10px; color: rgba(255,255,255,0.2);
+  text-align: center; line-height: 1.5;
+}
+.main-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+/* Tab sections */
+.tab-section { display: none; }
+.tab-section.active { display: block; }
+
 /* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .sidebar { display: none; }
+}
+/* ── SIDEBAR ── */
+.layout { display: flex; min-height: calc(100vh - 60px); }
+.sidebar {
+  width: 210px; flex-shrink: 0;
+  background: var(--primary);
+  display: flex; flex-direction: column;
+  padding: 20px 0;
+  position: sticky; top: 60px;
+  height: calc(100vh - 60px);
+  overflow-y: auto;
+}
+.sidebar-label {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.12em; color: rgba(255,255,255,0.3);
+  padding: 0 16px; margin-bottom: 6px; margin-top: 12px;
+  display: block;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px; margin: 1px 8px;
+  border-radius: 8px;
+  color: rgba(255,255,255,0.55); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s;
+  user-select: none;
+}
+.nav-item:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.85); }
+.nav-item.active { background: rgba(255,255,255,0.13); color: #fff; font-weight: 600; }
+.nav-icon { font-size: 15px; width: 20px; text-align: center; }
+.nav-divider { border: none; border-top: 1px solid rgba(255,255,255,0.07); margin: 10px 16px; }
+.sidebar-footer { margin-top: auto; padding: 16px; font-size: 10px; color: rgba(255,255,255,0.2); text-align: center; line-height: 1.5; }
+.main-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.tab-section { display: none; }
+.tab-section.active { display: block; }
+
 @media(max-width:1100px){ .kpi-grid{grid-template-columns:repeat(2,1fr);} .row-2-1{grid-template-columns:1fr;} }
+@media(max-width:900px){ .sidebar{display:none;} }
 @media(max-width:680px){ .main{padding:16px;} .topbar,.filter-bar{padding:0 16px;} .kpi-grid{grid-template-columns:1fr 1fr;} .row-1-1{grid-template-columns:1fr;} }
 </style>
 </head>
@@ -357,6 +435,34 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
     </div>
   </nav>
 
+  <div class="layout">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <span class="sidebar-label">Navegação</span>
+      <div class="sidebar-section">
+        <div class="nav-item active" onclick="switchTab('overview')" id="nav-overview">
+          <span class="nav-icon">🏠</span> Visão Geral
+        </div>
+        <div class="nav-item" onclick="switchTab('sales')" id="nav-sales">
+          <span class="nav-icon">💼</span> Vendas
+        </div>
+        <div class="nav-item" onclick="switchTab('marketing')" id="nav-marketing">
+          <span class="nav-icon">📣</span> Marketing
+        </div>
+      </div>
+      <hr class="nav-divider">
+      <span class="sidebar-label">Atividades</span>
+      <div class="sidebar-section">
+        <div class="nav-item" onclick="switchTab('tasks')" id="nav-tasks">
+          <span class="nav-icon">✅</span> Tarefas
+        </div>
+      </div>
+      <div class="sidebar-footer">
+        iGoal Tecnologias<br>BI Dashboard
+      </div>
+    </aside>
+
+    <div class="main-wrap">
   <div class="filter-bar">
     <span class="filter-label">Filtros</span>
     <select class="filter-select" id="f-period" onchange="applyFilters()">
@@ -381,7 +487,8 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
 
   <div class="main">
 
-    <!-- KPIs -->
+    <!-- ═══ TAB: VISÃO GERAL ═══ -->
+    <div class="tab-section active" id="tab-overview">
     <div class="sec-head"><div class="sec-title">Visão Geral · KPIs Executivos</div></div>
     <div class="kpi-grid" style="margin-bottom:28px">
       <div class="kpi-card blue fade-up">
@@ -429,33 +536,38 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
       </div>
     </div>
 
-    <!-- CHARTS ROW 2 -->
-    <div class="sec-head"><div class="sec-title">Conversão · Funil &amp; Origens</div></div>
+    </div><!-- /tab-overview -->
+
+    <!-- ═══ TAB: VENDAS ═══ -->
+    <div class="tab-section" id="tab-sales">
+    <div class="sec-head"><div class="sec-title">Vendas · Funil &amp; Pipeline</div></div>
     <div class="row-1-1">
       <div class="chart-card">
         <div class="card-head"><div><div class="card-title">Funil de Vendas</div><div class="card-sub">Clique para ver os negócios da etapa</div></div></div>
         <div id="funnel-wrap"><div class="empty"><div class="ei">📊</div><p>Carregando…</p></div></div>
       </div>
       <div class="chart-card">
-        <div class="card-head"><div><div class="card-title">Origem dos Leads</div><div class="card-sub">Canais de aquisição</div></div></div>
-        <div id="origin-wrap"><div class="empty"><div class="ei">🔍</div><p>Carregando…</p></div></div>
+        <div class="card-head"><div><div class="card-title">Volume por Etapa</div><div class="card-sub">Negócios em cada fase</div></div></div>
+        <div class="chart-h h250"><canvas id="stageChart"></canvas></div>
       </div>
     </div>
-
-    <!-- CHARTS ROW 3 -->
-    <div class="sec-head"><div class="sec-title">Receita &amp; Pipeline</div></div>
+    <div class="sec-head"><div class="sec-title">Receita &amp; Resultados</div></div>
     <div class="row-1-1">
       <div class="chart-card">
         <div class="card-head"><div><div class="card-title">Receita Mensal (R$)</div><div class="card-sub">Valor de negócios ganhos</div></div></div>
         <div class="chart-h h200"><canvas id="revChart"></canvas></div>
       </div>
       <div class="chart-card">
-        <div class="card-head"><div><div class="card-title">Volume por Etapa</div><div class="card-sub">Negócios em cada fase</div></div></div>
-        <div class="chart-h h200"><canvas id="stageChart"></canvas></div>
+        <div class="card-head">
+          <div><div class="card-title">Negócios por Mês</div><div class="card-sub">Evolução dos últimos 6 meses</div></div>
+          <div class="pill-row">
+            <button class="pill active" onclick="setLineMode('deals',this)">Volume</button>
+            <button class="pill" onclick="setLineMode('value',this)">Valor R$</button>
+          </div>
+        </div>
+        <div class="chart-h h200"><canvas id="lineChart2"></canvas></div>
       </div>
     </div>
-
-    <!-- TABLE DEALS -->
     <div class="sec-head"><div class="sec-title">Detalhamento · Negócios</div></div>
     <div class="table-card">
       <div class="table-top" style="flex-wrap:wrap;gap:10px;">
@@ -498,7 +610,42 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
       </div>
     </div>
 
-    <!-- TABLE TASKS -->
+    </div><!-- /tab-sales -->
+
+    <!-- ═══ TAB: MARKETING ═══ -->
+    <div class="tab-section" id="tab-marketing">
+    <div class="sec-head"><div class="sec-title">Marketing · Aquisição de Leads</div></div>
+    <div class="row-2-1">
+      <div class="chart-card">
+        <div class="card-head">
+          <div><div class="card-title">Negócios por Mês</div><div class="card-sub">Volume de aquisição mensal</div></div>
+          <div class="pill-row">
+            <button class="pill active" onclick="setLineMode('deals',this)">Volume</button>
+            <button class="pill" onclick="setLineMode('value',this)">Valor R$</button>
+          </div>
+        </div>
+        <div class="chart-h h250"><canvas id="lineChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="card-head"><div><div class="card-title">Distribuição de Status</div><div class="card-sub">Negócios filtrados</div></div></div>
+        <div class="chart-h h250"><canvas id="donutChart"></canvas></div>
+      </div>
+    </div>
+    <div class="sec-head"><div class="sec-title">Origem dos Leads</div></div>
+    <div class="row-1-1">
+      <div class="chart-card">
+        <div class="card-head"><div><div class="card-title">Canais de Aquisição</div><div class="card-sub">De onde vêm os leads</div></div></div>
+        <div id="origin-wrap"><div class="empty"><div class="ei">🔍</div><p>Carregando…</p></div></div>
+      </div>
+      <div class="chart-card">
+        <div class="card-head"><div><div class="card-title">Receita por Canal</div><div class="card-sub">Valor gerado por origem</div></div></div>
+        <div class="chart-h h250"><canvas id="originRevChart"></canvas></div>
+      </div>
+    </div>
+    </div><!-- /tab-marketing -->
+
+    <!-- ═══ TAB: TAREFAS ═══ -->
+    <div class="tab-section" id="tab-tasks">
     <div class="sec-head"><div class="sec-title">Atividades · Tarefas Pendentes</div></div>
     <div class="table-card">
       <div class="table-top">
@@ -511,8 +658,11 @@ tbody td:first-child { color: var(--text); font-weight: 600; }
         </table>
       </div>
     </div>
+    </div><!-- /tab-tasks -->
 
   </div><!-- /main -->
+    </div><!-- /main-wrap -->
+  </div><!-- /layout -->
 </div><!-- /app -->
 
 <!-- MODAL -->
@@ -759,6 +909,7 @@ function renderAll() {
   renderOrigins();
   renderDeals();
   renderTasks();
+  renderOriginRev();
 }
 
 /* ── KPIs ── */
@@ -1142,7 +1293,49 @@ function fi(label,val){
     <div style="font-size:13px;font-weight:600;color:#0F1729">${val}</div>
   </div>`;
 }
-function esc(s){return s.replace(/'/g,"\\'");}
+function esc(s){return s.replace(/'/g,"\'");}
+
+/* ── TAB NAVIGATION ── */
+function switchTab(tab) {
+  // Hide all tabs
+  document.querySelectorAll('.tab-section').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  // Show selected
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('nav-' + tab).classList.add('active');
+  // Re-render charts in case they were hidden
+  setTimeout(() => {
+    renderLine();
+    if (tab === 'sales') { renderStage(); renderRevenue(); }
+    if (tab === 'marketing') { renderDonut(); renderOrigins(); renderOriginRev(); }
+    if (tab === 'overview') { renderDonut(); }
+  }, 50);
+}
+
+/* ── ORIGIN REVENUE CHART ── */
+function renderOriginRev() {
+  const map = {};
+  FILT.filter(d => d.win === true || d.win === 1).forEach(d => {
+    const src = (d.deal_source && typeof d.deal_source === 'object' ? d.deal_source.name : d.deal_source) || d.lead_source || d.source || 'Direto';
+    map[src] = (map[src] || 0) + (parseFloat(d.amount_total || d.amount_montly || d.amount) || 0);
+  });
+  const sorted = Object.entries(map).sort((a,b) => b[1]-a[1]).slice(0,6);
+  const ctx = document.getElementById('originRevChart')?.getContext('2d');
+  if (!ctx) return;
+  if (CHARTS.originRev) CHARTS.originRev.destroy();
+  CHARTS.originRev = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: sorted.map(([k]) => k), datasets: [{ label: 'Receita (R$)', data: sorted.map(([,v]) => v), backgroundColor: '#2563EB', borderRadius: 4 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` R$ ${fmtM(c.parsed.y)}` } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#9CA3AF', font: { size: 10 } } },
+        y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#9CA3AF', font: { size: 10 }, callback: v => 'R$' + fmtM(v) }, beginAtZero: true }
+      }
+    }
+  });
+}
 
 
 /* ── LOGIN ── */
