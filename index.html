@@ -504,8 +504,13 @@ async function fetchBackground() {
       proxyGet('deals&page=1&limit=200').catch(function(){ return {}; }),
       proxyGet('tasks').catch(function(){ return {}; })
     ]);
-    RAW.deals = results[0].deals || [];
-    RAW.tasks = results[1].tasks || [];
+    if (results[0].deals && results[0].deals.length) {
+  RAW.deals = results[0].deals;
+}
+
+if (results[1].tasks && results[1].tasks.length) {
+  RAW.tasks = results[1].tasks;
+}
     saveCache(RAW.deals, RAW.tasks);
     applyFilters();
     if (results[0].has_more) fetchRemaining(2);
@@ -556,8 +561,13 @@ async function refresh() {
       proxyGet('deals&page=1&limit=200').catch(function(){ return {}; }),
       proxyGet('tasks').catch(function(){ return {}; })
     ]);
-    RAW.deals = results[0].deals || [];
-    RAW.tasks = results[1].tasks || [];
+    if (results[0].deals && results[0].deals.length) {
+  RAW.deals = results[0].deals;
+}
+
+if (results[1].tasks && results[1].tasks.length) {
+  RAW.tasks = results[1].tasks;
+}
     saveCache(RAW.deals, RAW.tasks);
     applyFilters();
     setStatus(true);
