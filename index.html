@@ -555,14 +555,41 @@ async function init() {
 async function refresh() {
   var btn = document.getElementById('ref-btn');
   btn.classList.add('spin');
+
   try {
     sessionStorage.removeItem(CACHE_KEY);
+
     var results = await Promise.all([
       proxyGet('deals&page=1&limit=200').catch(function(){ return {}; }),
       proxyGet('tasks').catch(function(){ return {}; })
     ]);
+
+    // 🔒 Só atualiza se vier dado válido
     if (results[0].deals && results[0].deals.length) {
-  RAW.deals = results[0].deals;
+      RAW.deals = results[0].deals;
+    }
+
+    if (results[1].tasks && results[1].tasks.length) {
+      RAW.tasks = results[1].tasks;
+    }
+
+    // 💾 EXTRA — salva cache atualizado
+    saveCache(RAW.deals, RAW.tasks);
+
+    applyFilters();
+    setStatus(true);
+
+    btn.classList.remove('spin');
+
+    // continua carregando páginas restantes se existir
+    if (results[0].has_more) fetchRemaining(2);
+
+  } catch (e) {
+    console.error('Erro ao atualizar:', e); // 👈 importante
+    setStatus(false);
+    btn.classList.remove('spin');
+  }
+}
 }
 
 if (results[1].tasks && results[1].tasks.length) {
