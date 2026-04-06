@@ -563,8 +563,10 @@ async function refresh() {
 var selectedSellers = [];
 function getSelectedSellers() { return selectedSellers; }
 function toggleSellerMenu() {
-  var m = document.getElementById('f-seller-menu');
-  m.style.display = m.style.display === 'none' ? '' : 'none';
+m.style.display = m.style.display === 'none' ? '' : 'none';
+}
+function updateSellerBtn() {
+  document.getElementById
 }
 function onSellerAll() {
   var checked = document.getElementById('seller-all').checked;
