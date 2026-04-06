@@ -241,8 +241,15 @@ tbody td:first-child{color:var(--text);font-weight:600;}
       <option value="won">Ganhos</option>
       <option value="lost">Perdidos</option>
     </select>
-    <select class="filter-select" id="f-seller" onchange="applyFilters()">
-      <option value="all">Todos os Vendedores</option>
+    <div style="position:relative;display:inline-block">
+  <button class="filter-select" id="f-seller-btn" onclick="toggleSellerMenu()" style="cursor:pointer;min-width:160px;text-align:left">Todos os Vendedores</button>
+  <div id="f-seller-menu" style="display:none;position:absolute;top:100%;left:0;background:#fff;border:1.5px solid #E2E6EF;border-radius:8px;padding:8px;z-index:200;min-width:200px;max-height:240px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
+    <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer">
+      <input type="checkbox" id="seller-all" checked onchange="onSellerAll()"> Todos
+    </label>
+    <div id="seller-list"></div>
+  </div>
+</div>
     </select>
     <span class="period-label">Período: <span id="period-display">—</span></span>
   </div>
