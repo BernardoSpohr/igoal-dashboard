@@ -574,7 +574,12 @@ function getDealSeller(d) {
 
 // ── FILTERS ──
 function applyFilters() {
-  var days   = parseInt(document.getElementById('f-period').value);
+  var periodVal = document.getElementById('f-period').value;
+  var days = parseInt(periodVal);
+  var customFrom = periodVal === 'custom' ? document.getElementById('f-date-from').value : null;
+  var customTo   = periodVal === 'custom' ? document.getElementById('f-date-to').value   : null;
+  var cutoffCustom = customFrom ? new Date(customFrom) : null;
+  var nowCustom    = customTo   ? new Date(customTo + 'T23:59:59') : null;
   var stage  = document.getElementById('f-stage').value;
   var status = document.getElementById('f-status').value;
   var seller = document.getElementById('f-seller').value;
@@ -585,10 +590,15 @@ function applyFilters() {
 
   FILT = RAW.deals.filter(function(d) {
     // Período
-    if (days < 9999) {
-      var cd = d.created_at ? new Date(d.created_at) : null;
-      if (cd && cd < cutoff) return false;
-    }
+    if (periodVal === 'custom') {
+  var cd = d.created_at ? new Date(d.created_at) : null;
+  if (!cd) return false;
+  if (cutoffCustom && cd < cutoffCustom) return false;
+  if (nowCustom    && cd > nowCustom)    return false;
+} else if (days < 9999) {
+  var cd = d.created_at ? new Date(d.created_at) : null;
+  if (cd && cd < cutoff) return false;
+}
     // Etapa
     if (stage !== 'all') {
       var ds = d.deal_stage && typeof d.deal_stage === 'object' ? d.deal_stage.name : (d.deal_stage || 'Sem etapa');
