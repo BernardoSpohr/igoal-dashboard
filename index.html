@@ -560,6 +560,39 @@ async function refresh() {
     btn.classList.remove('spin');
   }
 }
+var selectedSellers = [];
+function getSelectedSellers() { return selectedSellers; }
+function toggleSellerMenu() {
+  var m = document.getElementById('f-seller-menu');
+  m.style.display = m.style.display === 'none' ? '' : 'none';
+}
+function onSellerAll() {
+  var checked = document.getElementById('seller-all').checked;
+  selectedSellers = [];
+  document.querySelectorAll('#seller-list input').forEach(function(cb){ cb.checked = checked; });
+  updateSellerBtn();
+  applyFilters();
+}
+function onSellerCheck() {
+  selectedSellers = [];
+  document.querySelectorAll('#seller-list input:checked').forEach(function(cb){ selectedSellers.push(cb.value); });
+  document.getElementById('seller-all').checked = selectedSellers.length === 0;
+  updateSellerBtn();
+  applyFilters();
+}
+function updateSellerBtn() {
+  document.getElementById('f-seller-btn').textContent = selectedSellers.length === 0 ? 'Todos os Vendedores' : selectedSellers.length + ' vendedor(es)';
+}
+function buildSellerList(sellers) {
+  document.getElementById('seller-list').innerHTML = sellers.map(function(s){
+    return '<label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="'+esc(s)+'" onchange="onSellerCheck()"> '+s+'</label>';
+  }).join('');
+}
+document.addEventListener('click', function(e){
+  var menu = document.getElementById('f-seller-menu');
+  var btn  = document.getElementById('f-seller-btn');
+  if (menu && btn && !menu.contains(e.target) && e.target !== btn) menu.style.display = 'none';
+});
 function onPeriodChange() {
   var v = document.getElementById('f-period').value;
   var show = v === 'custom';
@@ -589,8 +622,7 @@ function applyFilters() {
   var nowCustom    = customTo   ? new Date(customTo + 'T23:59:59') : null;
   var stage  = document.getElementById('f-stage').value;
   var status = document.getElementById('f-status').value;
-  var seller = document.getElementById('f-seller').value;
-
+  var seller = getSelectedSellers();
   var cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
   var now = new Date();
@@ -618,8 +650,9 @@ function applyFilters() {
       if (status === 'open' && (d.win === true || d.win === 1 || (d.closed_at && d.win !== true))) return false;
     }
     // Vendedor (filtro global)
-    if (seller !== 'all') {
-      if (getDealSeller(d) !== seller) return false;
+   if (seller.length > 0) {
+      if (!seller.includes(getDealSeller(d))) return false;
+}
     }
     return true;
   });
@@ -643,8 +676,7 @@ function applyFilters() {
   var sellerSel = document.getElementById('f-seller');
   var curSeller = sellerSel.value;
   var sellers = [...new Set(RAW.deals.map(getDealSeller).filter(Boolean))].sort();
-  sellerSel.innerHTML = '<option value="all">Todos os Vendedores</option>' + sellers.map(function(s) {
-    return '<option value="' + esc(s) + '">' + s + '</option>';
+  buildSellerList(sellers);
   }).join('');
   if (sellers.includes(curSeller)) sellerSel.value = curSeller;
 
