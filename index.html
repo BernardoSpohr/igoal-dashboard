@@ -536,7 +536,8 @@ async function refresh() {
       RAW.deals = results[0].deals;
     }
     if (results[1].tasks && results[1].tasks.length) {
-      RAW.tasks = results[1].tasks;}
+      RAW.tasks = results[1].tasks;
+    }
     saveCache(RAW.deals, RAW.tasks);
     applyFilters();
     setStatus(true);
