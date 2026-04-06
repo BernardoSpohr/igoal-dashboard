@@ -217,6 +217,17 @@ tbody td:first-child{color:var(--text);font-weight:600;}
       <option value="all">Todas as Etapas</option>
     </select>
     <select class="filter-select" id="f-status" onchange="applyFilters()">
+      <select class="filter-select" id="f-value" onchange="onValueChange()">
+  <option value="all">Qualquer valor</option>
+  <option value="0-1000">Até R$ 1K</option>
+  <option value="1000-10000">R$ 1K – 10K</option>
+  <option value="10000-50000">R$ 10K – 50K</option>
+  <option value="50000-200000">R$ 50K – 200K</option>
+  <option value="200000+">Acima de R$ 200K</option>
+  <option value="custom">Personalizado...</option>
+</select>
+<input type="number" id="f-value-min" placeholder="Min R$" style="display:none;width:90px" class="filter-select" oninput="applyFilters()">
+<input type="number" id="f-value-max" placeholder="Max R$" style="display:none;width:90px" class="filter-select" oninput="applyFilters()">
       <option value="all">Todos os Status</option>
       <option value="open">Abertos</option>
       <option value="won">Ganhos</option>
@@ -414,7 +425,12 @@ function onSellerCheck(){selectedSellers=[];document.querySelectorAll('#seller-l
 function updateSellerBtn(){document.getElementById('f-seller-btn').textContent=selectedSellers.length===0?'Todos os Vendedores':selectedSellers.length+' vendedor(es)';}
 function buildSellerList(sellers){document.getElementById('seller-list').innerHTML=sellers.map(function(s){return '<label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="'+esc(s)+'"'+(selectedSellers.includes(s)?' checked':'')+' onchange="onSellerCheck()"> '+s+'</label>';}).join('');}
 document.addEventListener('click',function(e){var m=document.getElementById('f-seller-menu'),b=document.getElementById('f-seller-btn');if(m&&b&&!m.contains(e.target)&&e.target!==b)m.style.display='none';});
-
+function onValueChange(){
+  var v=document.getElementById('f-value').value,c=v==='custom';
+  document.getElementById('f-value-min').style.display=c?'':'none';
+  document.getElementById('f-value-max').style.display=c?'':'none';
+  applyFilters();
+}
 function onPeriodChange(){var v=document.getElementById('f-period').value,c=v==='custom';document.getElementById('f-date-from').style.display=c?'':'none';document.getElementById('f-date-to').style.display=c?'':'none';applyFilters();}
 
 function getDealSeller(d){return(d.user&&d.user.name)||d.responsible_name||'';}
@@ -425,6 +441,9 @@ function applyFilters(){
   var cutoff=new Date();cutoff.setDate(cutoff.getDate()-(days<9999?days:99999));
   var cf=null,ct=null;
   if(pv==='custom'){var fv=document.getElementById('f-date-from').value,tv=document.getElementById('f-date-to').value;cf=fv?new Date(fv):null;ct=tv?new Date(tv+'T23:59:59'):null;}
+  var fval=document.getElementById('f-value').value;
+  var vmin=fval==='custom'?parseFloat(document.getElementById('f-value-min').value)||0:null;
+  var vmax=fval==='custom'?parseFloat(document.getElementById('f-value-max').value)||Infinity:null;
   var stage=document.getElementById('f-stage').value, status=document.getElementById('f-status').value;
 
   FILT=RAW.deals.filter(function(d){
@@ -438,6 +457,12 @@ function applyFilters(){
       if(status==='open'&&(d.win===true||d.win===1||(d.closed_at&&d.win!==true)))return false;
     }
     if(selectedSellers.length>0&&!selectedSellers.includes(getDealSeller(d)))return false;
+    if(fval!=='all'){
+      var dv=parseFloat(d.amount_total||d.amount_montly||d.amount)||0;
+      if(fval==='custom'){if(dv<vmin||dv>vmax)return false;}
+      else if(fval==='200000+'){if(dv<200000)return false;}
+      else{var pts=fval.split('-').map(Number);if(dv<pts[0]||dv>=pts[1])return false;}
+}
     return true;
   });
 
