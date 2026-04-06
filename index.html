@@ -220,13 +220,17 @@ tbody td:first-child{color:var(--text);font-weight:600;}
   </nav>
   <div class="filter-bar">
     <span class="filter-label">Filtros</span>
-    <select class="filter-select" id="f-period" onchange="applyFilters()">
-      <option value="30">Últimos 30 dias</option>
-      <option value="60">Últimos 60 dias</option>
-      <option value="90">Últimos 90 dias</option>
-      <option value="180">Últimos 6 meses</option>
-      <option value="365">Último ano</option>
-      <option value="9999">Todo o período</option>
+<select class="filter-select" id="f-period" onchange="onPeriodChange()">
+  <option value="30">Últimos 30 dias</option>
+  <option value="60">Últimos 60 dias</option>
+  <option value="90">Últimos 90 dias</option>
+  <option value="180">Últimos 6 meses</option>
+  <option value="365">Último ano</option>
+  <option value="9999">Todo o período</option>
+  <option value="custom">Personalizado...</option>
+</select>
+<input type="date" id="f-date-from" style="display:none" class="filter-select" onchange="applyFilters()">
+<input type="date" id="f-date-to" style="display:none" class="filter-select" onchange="applyFilters()">
     </select>
     <select class="filter-select" id="f-stage" onchange="applyFilters()">
       <option value="all">Todas as Etapas</option>
@@ -548,6 +552,13 @@ async function refresh() {
     setStatus(false);
     btn.classList.remove('spin');
   }
+}
+function onPeriodChange() {
+  var v = document.getElementById('f-period').value;
+  var show = v === 'custom';
+  document.getElementById('f-date-from').style.display = show ? '' : 'none';
+  document.getElementById('f-date-to').style.display = show ? '' : 'none';
+  applyFilters();
 }
 
 function startAuto() {
