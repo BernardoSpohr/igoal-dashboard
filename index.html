@@ -315,36 +315,7 @@ tbody td:first-child{color:var(--text);font-weight:600;}
     <div class="table-card">
       <div class="table-top">
         <div><div class="card-title">Lista de Negócios</div><div class="card-sub">Clique em uma linha para detalhes</div></div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <input class="search-inp" placeholder="🔍 Buscar negócio..." oninput="applyTableFilters()" id="tbl-search">
-          <select class="filter-select" id="tbl-date" onchange="applyTableFilters()" style="font-size:12px;padding:7px 28px 7px 10px;">
-            <option value="all">Qualquer data</option>
-            <option value="7">Últimos 7 dias</option>
-            <option value="30">Últimos 30 dias</option>
-            <option value="90">Últimos 90 dias</option>
-            <option value="180">Últimos 6 meses</option>
-            <option value="365">Último ano</option>
-          </select>
-          <select class="filter-select" id="tbl-value" onchange="applyTableFilters()" style="font-size:12px;padding:7px 28px 7px 10px;">
-            <option value="all">Qualquer valor</option>
-            <option value="0-1000">Até R$ 1K</option>
-            <option value="1000-10000">R$ 1K – 10K</option>
-            <option value="10000-50000">R$ 10K – 50K</option>
-            <option value="50000-200000">R$ 50K – 200K</option>
-            <option value="200000+">Acima de R$ 200K</option>
-          </select>
-          <select class="filter-select" id="tbl-sort" onchange="applyTableFilters()" style="font-size:12px;padding:7px 28px 7px 10px;">
-            <option value="date-desc">Mais recentes</option>
-            <option value="date-asc">Mais antigos</option>
-            <option value="value-desc">Maior valor</option>
-            <option value="value-asc">Menor valor</option>
-            <option value="name-asc">Nome A-Z</option>
-          </select>
-          <select class="filter-select" id="tbl-resp" onchange="applyTableFilters()" style="font-size:12px;padding:7px 28px 7px 10px;">
-            <option value="all">Todos os Vendedores</option>
-          </select>
-          <span id="tbl-count" style="font-size:11px;color:#9CA3AF;white-space:nowrap;"></span>
-        </div>
+        <span id="tbl-count" style="font-size:11px;color:#9CA3AF;"></span>
       </div>
       <div class="t-scroll">
         <table>
@@ -545,20 +516,8 @@ function renderOriginRev(){
   CHARTS.originRev=new Chart(ctx,{type:'bar',data:{labels:sorted.map(function(e){return e[0];}),datasets:[{data:sorted.map(function(e){return e[1];}),backgroundColor:'#2563EB',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return ' R$ '+fmtM(c.parsed.y);}}}},scales:{x:{grid:{display:false},ticks:{color:'#9CA3AF',font:{size:10}}},y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#9CA3AF',font:{size:10},callback:function(v){return 'R$'+fmtM(v);}},beginAtZero:true}}}});
 }
 function renderDeals(){
-  allDealsRows=FILT.slice();var sel=document.getElementById('tbl-resp');
-  if(sel){var cur=sel.value,resps=[...new Set(FILT.map(getDealSeller).filter(Boolean))].sort();sel.innerHTML='<option value="all">Todos os Vendedores</option>'+resps.map(function(r){return'<option value="'+esc(r)+'">'+r+'</option>';}).join('');if(resps.includes(cur))sel.value=cur;}
-  applyTableFilters();
-}
-function applyTableFilters(){
-  var q=(document.getElementById('tbl-search').value||'').toLowerCase(),days=document.getElementById('tbl-date').value||'all',valR=document.getElementById('tbl-value').value||'all',sort=document.getElementById('tbl-sort').value||'date-desc',resp=document.getElementById('tbl-resp').value||'all';
-  var rows=allDealsRows.slice();
-  if(q)rows=rows.filter(function(d){return(d.name||'').toLowerCase().includes(q);});
-  if(resp!=='all')rows=rows.filter(function(d){return getDealSeller(d)===resp;});
-  if(days!=='all'){var co=new Date();co.setDate(co.getDate()-parseInt(days));rows=rows.filter(function(d){return d.created_at&&new Date(d.created_at)>=co;});}
-  if(valR!=='all'){if(valR==='200000+')rows=rows.filter(function(d){return(parseFloat(d.amount_total||d.amount_montly||d.amount)||0)>=200000;});else{var pts=valR.split('-').map(Number);rows=rows.filter(function(d){var v=parseFloat(d.amount_total||d.amount_montly||d.amount)||0;return v>=pts[0]&&v<pts[1];});}}
-  rows.sort(function(a,b){var va=parseFloat(a.amount_total||a.amount_montly||a.amount)||0,vb=parseFloat(b.amount_total||b.amount_montly||b.amount)||0,da=a.created_at?new Date(a.created_at):new Date(0),db=b.created_at?new Date(b.created_at):new Date(0);if(sort==='date-desc')return db-da;if(sort==='date-asc')return da-db;if(sort==='value-desc')return vb-va;if(sort==='value-asc')return va-vb;return(a.name||'').localeCompare(b.name||'');});
-  var el=document.getElementById('tbl-count');if(el)el.textContent=rows.length+' negócio'+(rows.length!==1?'s':'');
-  buildDeals(rows.slice(0,100));
+  var el=document.getElementById('tbl-count');if(el)el.textContent=FILT.length+' negócio'+(FILT.length!==1?'s':'');
+  buildDeals(FILT.slice(0,200));
 }
 function buildDeals(rows){
   var tbody=document.getElementById('deals-body');
