@@ -313,6 +313,14 @@ function buildSellerList(sellers){document.getElementById('seller-list').innerHT
 document.addEventListener('click',function(e){var m=document.getElementById('f-seller-menu'),b=document.getElementById('f-seller-btn');if(m&&b&&!m.contains(e.target)&&e.target!==b)m.style.display='none';});
 
 function onValueChange(){var v=document.getElementById('f-value').value,c=v==='custom';document.getElementById('f-value-min').style.display=c?'':'none';document.getElementById('f-value-max').style.display=c?'':'none';applyFilters();}
+  <select class="filter-select" id="f-rating" onchange="applyFilters()">
+  <option value="all">Qualquer estrela</option>
+  <option value="1">★ 1</option>
+  <option value="2">★★ 2</option>
+  <option value="3">★★★ 3</option>
+  <option value="4">★★★★ 4</option>
+  <option value="5">★★★★★ 5</option>
+</select>
 function onPeriodChange(){var v=document.getElementById('f-period').value,c=v==='custom';document.getElementById('f-date-from').style.display=c?'':'none';document.getElementById('f-date-to').style.display=c?'':'none';applyFilters();}
 
 function getDealSeller(d){return(d.user&&d.user.name)||d.responsible_name||'';}
@@ -335,7 +343,9 @@ function applyFilters(){
     if(stage!=='all'){var ds=d.deal_stage&&typeof d.deal_stage==='object'?d.deal_stage.name:(d.deal_stage||'Sem etapa');if(ds!==stage)return false;}
     if(status!=='all'){if(status==='won'&&d.win!==true&&d.win!==1)return false;if(status==='lost'&&!(d.closed_at&&d.win!==true&&d.win!==1))return false;if(status==='open'&&(d.win===true||d.win===1||(d.closed_at&&d.win!==true)))return false;}
     if(selectedSellers.length>0&&!selectedSellers.includes(getDealSeller(d)))return false;
+    var rating=document.getElementById('f-rating').value;
     if(fval!=='all'){var dv=parseFloat(d.amount_total||d.amount_montly||d.amount)||0;if(fval==='custom'){if(dv<vmin||dv>vmax)return false;}else if(fval==='200000+'){if(dv<200000)return false;}else{var pts=fval.split('-').map(Number);if(dv<pts[0]||dv>=pts[1])return false;}}
+    if(rating!=='all'&&String(d.rating)!==rating)return false;
     return true;
   });
 
