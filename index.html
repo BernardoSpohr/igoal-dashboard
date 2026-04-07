@@ -717,8 +717,8 @@ function computeStats(deals) {
     stats.sourceMap[src] = (stats.sourceMap[src] || 0) + 1;
   }
 
-  const closed = stats.wonCount + stats.lostCount;
-  stats.convRate = closed > 0 ? (stats.wonCount / closed) * 100 : 0;
+  const baseConv = stats.openCount + stats.lostCount;
+  stats.convRate = baseConv > 0 ? (stats.wonCount / baseConv) * 100 : 0;
   stats.avgTicket = stats.wonCount > 0 ? stats.wonRevenue / stats.wonCount : 0;
 
   return stats;
