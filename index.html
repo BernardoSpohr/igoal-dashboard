@@ -231,6 +231,7 @@ tbody td:first-child{color:var(--text);font-weight:600;}
         <div id="seller-list"></div>
       </div>
     </div>
+    <button onclick="clearFilters()" id="btn-clear" style="display:none;background:#FEF2F2;border:1.5px solid rgba(185,28,28,0.2);border-radius:var(--r-sm);padding:7px 13px;font-family:inherit;font-size:12px;font-weight:600;color:#B91C1C;cursor:pointer;">✕ Limpar filtros</button>
     <span class="period-label">Período: <span id="period-display">—</span></span>
   </div>
   <div class="main">
@@ -321,6 +322,8 @@ function buildSellerList(sellers){document.getElementById('seller-list').innerHT
 document.addEventListener('click',function(e){var m=document.getElementById('f-seller-menu'),b=document.getElementById('f-seller-btn');if(m&&b&&!m.contains(e.target)&&e.target!==b)m.style.display='none';});
 function onValueChange(){var v=document.getElementById('f-value').value,c=v==='custom';document.getElementById('f-value-min').style.display=c?'':'none';document.getElementById('f-value-max').style.display=c?'':'none';applyFilters();}
 function onPeriodChange(){var v=document.getElementById('f-period').value,c=v==='custom';document.getElementById('f-date-from').style.display=c?'':'none';document.getElementById('f-date-to').style.display=c?'':'none';applyFilters();}
+function clearFilters(){document.getElementById('f-period').value='30';document.getElementById('f-date-from').value='';document.getElementById('f-date-to').value='';document.getElementById('f-date-from').style.display='none';document.getElementById('f-date-to').style.display='none';document.getElementById('f-stage').value='all';document.getElementById('f-status').value='all';document.getElementById('f-value').value='all';document.getElementById('f-value-min').value='';document.getElementById('f-value-max').value='';document.getElementById('f-value-min').style.display='none';document.getElementById('f-value-max').style.display='none';document.getElementById('f-rating').value='all';selectedSellers=[];document.getElementById('seller-all').checked=true;document.querySelectorAll('#seller-list input').forEach(function(cb){cb.checked=false;});updateSellerBtn();applyFilters();}
+function isFiltered(){return document.getElementById('f-period').value!=='30'||document.getElementById('f-stage').value!=='all'||document.getElementById('f-status').value!=='all'||document.getElementById('f-value').value!=='all'||document.getElementById('f-rating').value!=='all'||selectedSellers.length>0;}
 function getDealSeller(d){return(d.user&&d.user.name)||d.responsible_name||'';}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&apos;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
@@ -355,6 +358,7 @@ function applyFilters(){
   stageSel.innerHTML='<option value="all">Todas as Etapas</option>'+stages.map(function(s){return'<option value="'+esc(s)+'">'+s+'</option>';}).join('');
   if(stages.includes(curStage))stageSel.value=curStage;
   buildSellerList([...new Set(RAW.deals.map(getDealSeller).filter(Boolean))].sort());
+  document.getElementById('btn-clear').style.display=isFiltered()?'':'none';
   renderAll();
 }
 
