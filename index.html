@@ -561,8 +561,9 @@ function computeStats(deals) {
   }
 
   // Conversion = won / (won + lost) — excludes pipeline still in progress
-  stats.convRate = stats.total > 0 
-  ? (stats.wonCount / stats.total * 100) 
+  const closed = stats.wonCount + stats.lostCount;
+stats.convRate = closed > 0 
+  ? (stats.wonCount / closed * 100) 
   : 0;
   stats.avgTicket = stats.wonCount > 0 ? stats.wonRevenue / stats.wonCount : 0;
 
@@ -671,7 +672,7 @@ const API = {
   async get(endpoint) {
     const res = await fetch(this._url(endpoint));
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = JSON.parse((await res.text()).trim());
+    const data = await res.json();
     if (data.error === 'Unauthorized') throw new Error('Unauthorized');
     return data;
   },
@@ -756,7 +757,7 @@ const Dashboard = {
 
   async refresh() {
     const btn = Utils.el('ref-btn');
-    btn.classList.add('spin');
+    if (btn) btn.classList.add('spin');
     try {
       Cache.clear();
       const [page1, tasks] = await Promise.all([API.fetchPage(1), API.fetchTasks()]);
@@ -897,26 +898,42 @@ const Filters = {
 },
 
   clear() {
-    Utils.el('f-period').value = '30';
-    Utils.el('f-date-from').value = '';
-    Utils.el('f-date-to').value = '';
-    Utils.el('f-date-from').style.display = 'none';
-    Utils.el('f-date-to').style.display = 'none';
-    Utils.el('f-stage').value = 'all';
-    Utils.el('f-status').value = 'all';
-    Utils.el('f-value').value = 'all';
-    Utils.el('f-value-min').value = '';
-    Utils.el('f-value-max').value = '';
-    Utils.el('f-value-min').style.display = 'none';
-    Utils.el('f-value-max').style.display = 'none';
-    Utils.el('f-rating').value = 'all';
-    State.setSellers([]);
-    Utils.el('seller-all').checked = true;
-    document.querySelectorAll('#seller-list input').forEach(cb => { cb.checked = false; });
-    this._updateSellerBtn();
-    this.apply();
-  },
+  if (!this._isActive()) return;
 
+  Utils.el('f-period').value = '30';
+  Utils.el('f-stage').value = 'all';
+  Utils.el('f-status').value = 'all';
+  Utils.el('f-value').value = 'all';
+  Utils.el('f-rating').value = 'all';
+
+  ['f-date-from','f-date-to'].forEach(id => {
+    const el = Utils.el(id);
+    if (el) {
+      el.value = '';
+      el.style.display = 'none';
+    }
+  });
+
+  ['f-value-min','f-value-max'].forEach(id => {
+    const el = Utils.el(id);
+    if (el) {
+      el.value = '';
+      el.style.display = 'none';
+    }
+  });
+
+  State.setSellers([]);
+
+  const sellerAll = Utils.el('seller-all');
+  if (sellerAll) sellerAll.checked = true;
+
+  document.querySelectorAll('#seller-list input')
+    .forEach(cb => cb.checked = false);
+
+  this._updateSellerBtn();
+
+  this.apply();
+},
   onPeriodChange() {
     const v = Utils.el('f-period').value;
     Utils.el('f-date-from').style.display = v === 'custom' ? '' : 'none';
