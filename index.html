@@ -221,7 +221,7 @@ tbody td:first-child{color:var(--text);font-weight:600;}
     <div class="error-icon">⚠️</div>
     <h2>Não foi possível carregar os dados</h2>
     <p id="error-msg">Verifique se o Apps Script está publicado corretamente.</p>
-    <button class="btn-clear" id="btn-clear" style="display:block" onclick="Filters.clear()">✕ Limpar filtros</button>
+    <button class="btn-retry" id="btn-retry" onclick="Dashboard.init()">Tentar novamente</button>
   </div>
 </div>
 
@@ -296,7 +296,7 @@ tbody td:first-child{color:var(--text);font-weight:600;}
         <div id="seller-list"></div>
       </div>
     </div>
-    <button class="btn-clear" id="btn-clear" onclick="Filters.clear()">✕ Limpar filtros</button>
+    <button class="btn-clear" id="btn-clear-filters" onclick="Filters.clear()">✕ Limpar filtros</button>
     <span class="period-label">Período: <span id="period-display">—</span></span>
   </div>
 
@@ -413,26 +413,30 @@ tbody td:first-child{color:var(--text);font-weight:600;}
 <script>
 'use strict';
 
+const RUNTIME_CONFIG = window.__IGOAL_RUNTIME__ || {};
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 /* ════════════════════════════════════════════
    CONFIG
 ════════════════════════════════════════════ */
 const CONFIG = Object.freeze({
   PROXY_BASE: 'https://script.google.com/macros/s/AKfycbwR3d0FY9IqEQr_sIRvOB8beircEz7vXNk1cDYE5QwoFZmgAUQf5mJ7yA3nsd3SL-hd/exec',
-  // API_TOKEN is shared with the Apps Script doGet() validator.
-  // Rotate this value together with the Apps Script token when credentials change.
-  API_TOKEN: 'igoal-tk-2026',
-  CACHE_KEY: 'ig_cache_v3',
+  API_TOKEN: typeof RUNTIME_CONFIG.API_TOKEN === 'string' ? RUNTIME_CONFIG.API_TOKEN : 'igoal-tk-2026',
+  LOGIN_USER: typeof RUNTIME_CONFIG.LOGIN_USER === 'string' ? RUNTIME_CONFIG.LOGIN_USER : 'igoal',
+  LOGIN_PASS: typeof RUNTIME_CONFIG.LOGIN_PASS === 'string' ? RUNTIME_CONFIG.LOGIN_PASS : 'igoal2026',
+  CACHE_KEY: 'ig_cache_v4',
   CACHE_TTL: 5 * 60 * 1000,
   AUTO_REFRESH_MS: 5 * 60 * 1000,
+  FETCH_TIMEOUT_MS: 15000,
   LOGIN_MAX_ATTEMPTS: 5,
   LOGIN_LOCKOUT_MS: 30 * 1000,
+  MAX_PAGES: 100,
   CHART_COLORS: ['#1E40AF','#2563EB','#3B82F6','#60A5FA','#93C5FD','#BFDBFE'],
   SESSION_KEY: 'ig_auth',
-  TOKEN_KEY: 'ig_token',
 });
 
 /* ════════════════════════════════════════════
-   STATE  (never accessed directly outside module)
+   STATE
 ════════════════════════════════════════════ */
 const State = (() => {
   let _raw = { deals: [], tasks: [] };
@@ -447,16 +451,24 @@ const State = (() => {
     getSellers: () => _selectedSellers,
     getLineMode: () => _lineMode,
 
-    setRaw: (deals, tasks) => { _raw.deals = deals; _raw.tasks = tasks; },
-    setFiltered: (arr) => { _filtered = arr; },
-    setSellers: (arr) => { _selectedSellers = arr; },
-    setLineMode: (m) => { _lineMode = m; },
+    setRaw: (deals, tasks) => {
+      _raw = {
+        deals: Array.isArray(deals) ? deals : [],
+        tasks: Array.isArray(tasks) ? tasks : [],
+      };
+    },
+    setFiltered: (arr) => { _filtered = Array.isArray(arr) ? arr : []; },
+    setSellers: (arr) => { _selectedSellers = Array.isArray(arr) ? arr : []; },
+    setLineMode: (m) => { _lineMode = m === 'value' ? 'value' : 'deals'; },
 
     startAutoRefresh: (fn) => {
       clearInterval(_autoTimer);
       _autoTimer = setInterval(fn, CONFIG.AUTO_REFRESH_MS);
     },
-    stopAutoRefresh: () => clearInterval(_autoTimer),
+    stopAutoRefresh: () => {
+      clearInterval(_autoTimer);
+      _autoTimer = null;
+    },
   };
 })();
 
@@ -466,78 +478,223 @@ const State = (() => {
 const Utils = {
   esc(str) {
     return String(str)
-      .replace(/&/g,'&amp;').replace(/"/g,'&quot;')
-      .replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      .replace(/&/g,'&amp;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&#39;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;');
   },
 
-  // Handles both "10.000,00" (pt-BR) and "10000.00" (API) formats safely
   parseMoney(v) {
-    if (!v && v !== 0) return 0;
-    const str = String(v).trim();
-    // pt-BR format: dots as thousand separators, comma as decimal
-    if (/^\d{1,3}(\.\d{3})*(,\d+)?$/.test(str)) {
-      return Number(str.replace(/\./g, '').replace(',', '.')) || 0;
+    if (v === null || v === undefined || v === '') return 0;
+    if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
+
+    let str = String(v).trim().replace(/[^\d,.-]/g, '');
+    if (!str) return 0;
+
+    const hasComma = str.includes(',');
+    const hasDot = str.includes('.');
+
+    if (hasComma && hasDot) {
+      if (str.lastIndexOf(',') > str.lastIndexOf('.')) {
+        str = str.replace(/\./g, '').replace(',', '.');
+      } else {
+        str = str.replace(/,/g, '');
+      }
+    } else if (hasComma) {
+      str = str.replace(/\./g, '').replace(',', '.');
     }
-    return Number(str.replace(',', '.')) || 0;
+
+    const num = Number(str);
+    return Number.isFinite(num) ? num : 0;
   },
 
   fmtCurrency(n) {
     const v = Utils.parseMoney(n);
-    if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
-    if (v >= 1e3) return (v / 1e3).toFixed(1) + 'K';
-    return v.toLocaleString('pt-BR', { minimumFractionDigits: 0 });
+    if (Math.abs(v) >= 1e6) return (v / 1e6).toFixed(1) + 'M';
+    if (Math.abs(v) >= 1e3) return (v / 1e3).toFixed(1) + 'K';
+    return v.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  },
+
+  toDate(value, endOfDay = false) {
+    if (!value) return null;
+    if (value instanceof Date) {
+      const ts = value.getTime();
+      if (Number.isNaN(ts)) return null;
+      const d = new Date(ts);
+      if (endOfDay) d.setHours(23, 59, 59, 999);
+      return d;
+    }
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (!trimmed) return null;
+
+      const dateOnly = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (dateOnly) {
+        const [, y, m, d] = dateOnly;
+        const local = new Date(Number(y), Number(m) - 1, Number(d), endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0);
+        return Number.isNaN(local.getTime()) ? null : local;
+      }
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return null;
+    if (endOfDay) parsed.setHours(23, 59, 59, 999);
+    return parsed;
   },
 
   fmtDate(dateStr, opts = {}) {
-    if (!dateStr) return '—';
-    return new Date(dateStr).toLocaleDateString('pt-BR', opts);
+    const d = Utils.toDate(dateStr);
+    if (!d) return '—';
+    return d.toLocaleDateString('pt-BR', opts);
+  },
+
+  startOfDay(date) {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  },
+
+  endOfDay(date) {
+    const d = new Date(date);
+    d.setHours(23, 59, 59, 999);
+    return d;
+  },
+
+  addDays(date, days) {
+    const d = new Date(date);
+    d.setDate(d.getDate() + days);
+    return d;
+  },
+
+  clampPositiveInt(v, fallback) {
+    const n = Number.parseInt(v, 10);
+    return Number.isFinite(n) && n > 0 ? n : fallback;
   },
 
   el(id) { return document.getElementById(id); },
 
-  show(id, display = 'block') { const e = Utils.el(id); if (e) e.style.display = display; },
-  hide(id) { const e = Utils.el(id); if (e) e.style.display = 'none'; },
-  setText(id, text) { const e = Utils.el(id); if (e) e.textContent = text; },
+  show(id, display = 'block') {
+    const e = Utils.el(id);
+    if (e) e.style.display = display;
+  },
+
+  hide(id) {
+    const e = Utils.el(id);
+    if (e) e.style.display = 'none';
+  },
+
+  setText(id, text) {
+    const e = Utils.el(id);
+    if (e) e.textContent = text;
+  },
 
   animateNumber(id, target) {
     const el = Utils.el(id);
     if (!el) return;
-    const from = parseInt(el.textContent) || 0;
-    const dur = 600;
+    const numeric = Number(target);
+    const safeTarget = Number.isFinite(numeric) ? numeric : 0;
+    const from = Number.parseInt(String(el.textContent).replace(/[^\d-]/g, ''), 10) || 0;
+    const dur = 400;
     const t0 = performance.now();
+
     const tick = (now) => {
       const p = Math.min((now - t0) / dur, 1);
-      el.textContent = Math.round(from + (target - from) * p);
+      el.textContent = Math.round(from + (safeTarget - from) * p);
       if (p < 1) requestAnimationFrame(tick);
     };
+
     requestAnimationFrame(tick);
+  },
+
+  getCanvasContext(id) {
+    const canvas = Utils.el(id);
+    if (!canvas || typeof Chart === 'undefined') return null;
+    return canvas.getContext('2d');
   },
 };
 
 /* ════════════════════════════════════════════
-   DEAL ACCESSORS  (normalise inconsistent API fields)
+   DEAL ACCESSORS
 ════════════════════════════════════════════ */
 const Deal = {
-  amount: (d) => Utils.parseMoney(d.amount_total) || Utils.parseMoney(d.amount_montly) || Utils.parseMoney(d.amount) || 0,
-  stage:  (d) => (d.deal_stage && typeof d.deal_stage === 'object' ? d.deal_stage.name : d.deal_stage) || 'Sem etapa',
-  source: (d) => (d.deal_source && typeof d.deal_source === 'object' ? d.deal_source.name : d.deal_source) || d.lead_source || d.source || 'Direto',
-  seller: (d) => (d.user && d.user.name) || d.responsible_name || '',
-  isWon:  (d) => d.win === true || d.win === 1,
-  isLost: (d) => !!(d.closed_at && !Deal.isWon(d)),
-  isOpen: (d) => !Deal.isWon(d) && !Deal.isLost(d),
-  // Use closed_at for won deals (financial close date), fallback to created_at
-  revenueDate: (d) => d.closed_at || d.created_at,
+  _meta(d) {
+    if (!d || typeof d !== 'object') {
+      return {
+        amount: 0, stage: 'Sem etapa', source: 'Direto', seller: '',
+        won: false, lost: false, open: true,
+        createdAt: null, closedAt: null, revenueAt: null, rating: null,
+      };
+    }
+
+    if (d.__meta) return d.__meta;
+
+    const rawStage = d.deal_stage && typeof d.deal_stage === 'object' ? d.deal_stage.name : d.deal_stage;
+    const rawSource = d.deal_source && typeof d.deal_source === 'object' ? d.deal_source.name : d.deal_source;
+    const seller = (d.user && d.user.name) || d.responsible_name || '';
+    const amount = Utils.parseMoney(d.amount_total) || Utils.parseMoney(d.amount_monthly) || Utils.parseMoney(d.amount_montly) || Utils.parseMoney(d.amount) || 0;
+    const createdAt = Utils.toDate(d.created_at);
+    const closedAt = Utils.toDate(d.closed_at);
+    const statusRaw = String(d.status || d.deal_status || '').trim().toLowerCase();
+    const won = d.win === true || d.win === 1 || ['won', 'ganho', 'gained'].includes(statusRaw);
+    const lost = !won && (
+      d.lost === true ||
+      d.lost === 1 ||
+      ['lost', 'perdido', 'lost sale'].includes(statusRaw) ||
+      (!!closedAt && !won)
+    );
+    const rating = d.rating === null || d.rating === undefined || d.rating === '' ? null : Number.parseInt(d.rating, 10);
+
+    const meta = {
+      amount,
+      stage: rawStage || 'Sem etapa',
+      source: rawSource || d.lead_source || d.source || 'Direto',
+      seller,
+      won,
+      lost,
+      open: !won && !lost,
+      createdAt,
+      closedAt,
+      revenueAt: closedAt || createdAt,
+      rating: Number.isFinite(rating) ? rating : null,
+    };
+
+    try {
+      Object.defineProperty(d, '__meta', { value: meta, configurable: true, enumerable: false });
+    } catch (_) {
+      d.__meta = meta;
+    }
+
+    return meta;
+  },
+
+  amount: (d) => Deal._meta(d).amount,
+  stage: (d) => Deal._meta(d).stage,
+  source: (d) => Deal._meta(d).source,
+  seller: (d) => Deal._meta(d).seller,
+  isWon: (d) => Deal._meta(d).won,
+  isLost: (d) => Deal._meta(d).lost,
+  isOpen: (d) => Deal._meta(d).open,
+  createdAt: (d) => Deal._meta(d).createdAt,
+  revenueDate: (d) => Deal._meta(d).revenueAt,
+  rating: (d) => Deal._meta(d).rating,
 };
 
 /* ════════════════════════════════════════════
-   STATS  (single-pass over filtered array)
+   STATS
 ════════════════════════════════════════════ */
 function computeStats(deals) {
   const stats = {
     total: deals.length,
-    wonCount: 0, lostCount: 0, openCount: 0,
-    wonRevenue: 0, openRevenue: 0,
-    stageMap: {}, sourceMap: {}, sourceRevMap: {},
+    wonCount: 0,
+    lostCount: 0,
+    openCount: 0,
+    wonRevenue: 0,
+    openRevenue: 0,
+    stageMap: Object.create(null),
+    sourceMap: Object.create(null),
+    sourceRevMap: Object.create(null),
   };
 
   for (const d of deals) {
@@ -560,65 +717,78 @@ function computeStats(deals) {
     stats.sourceMap[src] = (stats.sourceMap[src] || 0) + 1;
   }
 
-  // Conversion = won / (won + lost) — excludes pipeline still in progress
   const closed = stats.wonCount + stats.lostCount;
-stats.convRate = closed > 0 
-  ? (stats.wonCount / closed * 100) 
-  : 0;
+  stats.convRate = closed > 0 ? (stats.wonCount / closed) * 100 : 0;
   stats.avgTicket = stats.wonCount > 0 ? stats.wonRevenue / stats.wonCount : 0;
 
   return stats;
 }
 
 /* ════════════════════════════════════════════
-   AUTH  (with rate limiting)
+   AUTH
 ════════════════════════════════════════════ */
 const Auth = (() => {
   let attempts = 0;
   let lockedUntil = 0;
   let lockTimer = null;
 
+  function clearLockTimer() {
+    if (lockTimer) {
+      clearTimeout(lockTimer);
+      lockTimer = null;
+    }
+  }
+
   function startLockoutCountdown() {
     const btn = Utils.el('btn-login');
     Utils.hide('login-err');
     Utils.show('login-lockout');
-    btn.disabled = true;
+    if (btn) btn.disabled = true;
 
     const tick = () => {
       const remaining = Math.ceil((lockedUntil - Date.now()) / 1000);
       if (remaining <= 0) {
         Utils.hide('login-lockout');
-        btn.disabled = false;
+        if (btn) btn.disabled = false;
         attempts = 0;
+        clearLockTimer();
         return;
       }
       Utils.setText('lockout-timer', remaining);
       lockTimer = setTimeout(tick, 500);
     };
+
+    clearLockTimer();
     tick();
   }
 
   function verify(user, pass) {
-    // Credentials validated server-side in a real app.
-    // This is intentionally a lightweight client gate for a static page.
-    return user === 'igoal' && pass === 'igoal2026';
+    return user === CONFIG.LOGIN_USER && pass === CONFIG.LOGIN_PASS;
   }
 
   return {
     login() {
       if (Date.now() < lockedUntil) return;
 
-      const user = Utils.el('login-user').value.trim();
-      const pass = Utils.el('login-pass').value;
+      const userEl = Utils.el('login-user');
+      const passEl = Utils.el('login-pass');
+      const btn = Utils.el('btn-login');
+      if (!userEl || !passEl || !btn) return;
+
+      const user = userEl.value.trim();
+      const pass = passEl.value;
 
       if (verify(user, pass)) {
+        clearLockTimer();
         sessionStorage.setItem(CONFIG.SESSION_KEY, '1');
-        Utils.el('login-screen').style.display = 'none';
+        Utils.hide('login-lockout');
+        Utils.hide('login-err');
+        Utils.hide('login-screen');
         Dashboard.init();
       } else {
         attempts++;
-        Utils.el('login-pass').value = '';
-        Utils.el('login-pass').focus();
+        passEl.value = '';
+        passEl.focus();
 
         if (attempts >= CONFIG.LOGIN_MAX_ATTEMPTS) {
           lockedUntil = Date.now() + CONFIG.LOGIN_LOCKOUT_MS;
@@ -631,7 +801,7 @@ const Auth = (() => {
 
     check() {
       if (sessionStorage.getItem(CONFIG.SESSION_KEY) === '1') {
-        Utils.el('login-screen').style.display = 'none';
+        Utils.hide('login-screen');
         return true;
       }
       return false;
@@ -645,19 +815,35 @@ const Auth = (() => {
 const Cache = {
   save(deals, tasks) {
     try {
-      sessionStorage.setItem(CONFIG.CACHE_KEY, JSON.stringify({ deals, tasks, ts: Date.now() }));
+      sessionStorage.setItem(CONFIG.CACHE_KEY, JSON.stringify({
+        deals: Array.isArray(deals) ? deals : [],
+        tasks: Array.isArray(tasks) ? tasks : [],
+        ts: Date.now(),
+      }));
     } catch (_) {}
   },
+
   load() {
     try {
       const raw = sessionStorage.getItem(CONFIG.CACHE_KEY);
       if (!raw) return null;
+
       const c = JSON.parse(raw);
-      if (Date.now() - c.ts > CONFIG.CACHE_TTL) return null;
+      if (!c || typeof c !== 'object') return null;
+      if (Date.now() - Number(c.ts || 0) > CONFIG.CACHE_TTL) return null;
+      if (!Array.isArray(c.deals) || !Array.isArray(c.tasks)) return null;
+
       return c;
-    } catch (_) { return null; }
+    } catch (_) {
+      return null;
+    }
   },
-  clear() { sessionStorage.removeItem(CONFIG.CACHE_KEY); },
+
+  clear() {
+    try {
+      sessionStorage.removeItem(CONFIG.CACHE_KEY);
+    } catch (_) {}
+  },
 };
 
 /* ════════════════════════════════════════════
@@ -665,85 +851,151 @@ const Cache = {
 ════════════════════════════════════════════ */
 const API = {
   _url(endpoint) {
-    const token = sessionStorage.getItem(CONFIG.TOKEN_KEY) || CONFIG.API_TOKEN;
-    return `${CONFIG.PROXY_BASE}?token=${encodeURIComponent(token)}&endpoint=${encodeURIComponent(endpoint)}`;
+    return `${CONFIG.PROXY_BASE}?token=${encodeURIComponent(CONFIG.API_TOKEN)}&endpoint=${encodeURIComponent(endpoint)}`;
   },
 
   async get(endpoint) {
-    const res = await fetch(this._url(endpoint));
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    if (data.error === 'Unauthorized') throw new Error('Unauthorized');
-    return data;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), CONFIG.FETCH_TIMEOUT_MS);
+
+    try {
+      const res = await fetch(this._url(endpoint), {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+        credentials: 'omit',
+        signal: controller.signal,
+      });
+
+      const text = await res.text();
+      let data = null;
+
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (_) {
+        throw new Error('Resposta inválida da API');
+      }
+
+      if (!res.ok) {
+        throw new Error(data?.message || `HTTP ${res.status}`);
+      }
+
+      if (!data || typeof data !== 'object') {
+        throw new Error('Payload inválido da API');
+      }
+
+      if (data.error === 'Unauthorized') {
+        throw new Error('Não autorizado');
+      }
+
+      return data;
+    } catch (err) {
+      if (err && err.name === 'AbortError') {
+        throw new Error('Tempo limite da API excedido');
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeout);
+    }
   },
 
   async fetchPage(page) {
-    return this.get(`deals&page=${page}&limit=200`).catch(() => ({}));
+    return this.get(`deals&page=${page}&limit=200`);
   },
 
   async fetchTasks() {
-    return this.get('tasks').catch(() => ({}));
+    return this.get('tasks');
   },
 };
 
 /* ════════════════════════════════════════════
-   DASHBOARD  (data orchestration)
+   DASHBOARD
 ════════════════════════════════════════════ */
 const Dashboard = {
+  _requestId: 0,
+  _refreshing: false,
+
   async init() {
+    State.stopAutoRefresh();
     Utils.show('loading-screen', 'flex');
     Utils.hide('error-screen');
     Utils.hide('app');
+
     try {
       await this._fetchAll();
     } catch (err) {
       Utils.hide('loading-screen');
       Utils.show('error-screen', 'flex');
-      Utils.setText('error-msg', `Erro: ${err.message}`);
+      Utils.setText('error-msg', `Erro: ${err.message || 'Falha ao carregar dados'}`);
+      UI.setStatus(false);
     }
   },
 
   async _fetchAll() {
+    const requestId = ++this._requestId;
     Utils.setText('loading-msg', 'Carregando dashboard...');
-    const cached = Cache.load();
 
+    const cached = Cache.load();
     if (cached) {
       State.setRaw(cached.deals, cached.tasks);
       this._showApp();
-      this._fetchBackground();
+      this._fetchBackground(requestId);
       return;
     }
 
     const [page1, tasks] = await Promise.all([API.fetchPage(1), API.fetchTasks()]);
-    State.setRaw(page1.deals || [], tasks.tasks || []);
-    Cache.save(State.getRaw().deals, State.getRaw().tasks);
+    if (requestId !== this._requestId) return;
+
+    const deals = Array.isArray(page1.deals) ? page1.deals : [];
+    const taskRows = Array.isArray(tasks.tasks) ? tasks.tasks : [];
+    State.setRaw(deals, taskRows);
+    Cache.save(deals, taskRows);
     this._showApp();
-    if (page1.has_more) this._fetchRemaining(2);
+
+    if (page1.has_more) {
+      this._fetchRemaining(2, requestId, deals, taskRows);
+    }
   },
 
-  async _fetchBackground() {
+  async _fetchBackground(requestId) {
     try {
       const [page1, tasks] = await Promise.all([API.fetchPage(1), API.fetchTasks()]);
-      const raw = State.getRaw();
-      if (page1.deals?.length) raw.deals = page1.deals;
-      if (tasks.tasks?.length) raw.tasks = tasks.tasks;
-      Cache.save(raw.deals, raw.tasks);
+      if (requestId !== this._requestId) return;
+
+      const deals = Array.isArray(page1.deals) ? page1.deals : [];
+      const taskRows = Array.isArray(tasks.tasks) ? tasks.tasks : [];
+      State.setRaw(deals, taskRows);
+      Cache.save(deals, taskRows);
       Filters.apply();
-      if (page1.has_more) this._fetchRemaining(2);
+
+      if (page1.has_more) {
+        this._fetchRemaining(2, requestId, deals, taskRows);
+      }
     } catch (_) {}
   },
 
-  async _fetchRemaining(startPage) {
+  async _fetchRemaining(startPage, requestId, seedDeals, seedTasks) {
     let page = startPage;
-    while (page <= 20) {
+    let allDeals = Array.isArray(seedDeals) ? seedDeals.slice() : [];
+
+    while (page <= CONFIG.MAX_PAGES) {
+      if (requestId !== this._requestId) return;
+
       const res = await API.fetchPage(page);
-      const batch = res.deals || [];
+      const batch = Array.isArray(res.deals) ? res.deals : [];
       if (!batch.length) break;
-      State.getRaw().deals = State.getRaw().deals.concat(batch);
-      Filters.apply();
+
+      allDeals = allDeals.concat(batch);
+
       if (!res.has_more) break;
       page++;
     }
+
+    if (requestId !== this._requestId) return;
+
+    State.setRaw(allDeals, seedTasks);
+    Cache.save(allDeals, seedTasks);
+    Filters.apply();
     UI.setStatus(true);
   },
 
@@ -756,23 +1008,34 @@ const Dashboard = {
   },
 
   async refresh() {
+    if (this._refreshing) return;
+
+    this._refreshing = true;
     const btn = Utils.el('ref-btn');
     if (btn) btn.classList.add('spin');
+
     try {
       Cache.clear();
+      const requestId = ++this._requestId;
       const [page1, tasks] = await Promise.all([API.fetchPage(1), API.fetchTasks()]);
-      const raw = State.getRaw();
-      if (page1.deals?.length) raw.deals = page1.deals;
-      if (tasks.tasks?.length) raw.tasks = tasks.tasks;
-      Cache.save(raw.deals, raw.tasks);
+      if (requestId !== this._requestId) return;
+
+      const deals = Array.isArray(page1.deals) ? page1.deals : [];
+      const taskRows = Array.isArray(tasks.tasks) ? tasks.tasks : [];
+      State.setRaw(deals, taskRows);
+      Cache.save(deals, taskRows);
       Filters.apply();
       UI.setStatus(true);
-      if (page1.has_more) this._fetchRemaining(2);
+
+      if (page1.has_more) {
+        this._fetchRemaining(2, requestId, deals, taskRows);
+      }
     } catch (err) {
       console.error('[Dashboard.refresh]', err);
       UI.setStatus(false);
     } finally {
-      btn.classList.remove('spin');
+      if (btn) btn.classList.remove('spin');
+      this._refreshing = false;
     }
   },
 };
@@ -782,66 +1045,82 @@ const Dashboard = {
 ════════════════════════════════════════════ */
 const Filters = {
   apply() {
-    const pv     = Utils.el('f-period').value;
-    const stage  = Utils.el('f-stage').value;
-    const status = Utils.el('f-status').value;
-    const fval   = Utils.el('f-value').value;
-    const rating = Utils.el('f-rating').value;
-    const now    = new Date();
+    const periodEl = Utils.el('f-period');
+    const stageEl = Utils.el('f-stage');
+    const statusEl = Utils.el('f-status');
+    const valueEl = Utils.el('f-value');
+    const ratingEl = Utils.el('f-rating');
 
-    let periodStart = null, periodEnd = now;
+    if (!periodEl || !stageEl || !statusEl || !valueEl || !ratingEl) return;
+
+    const pv = periodEl.value;
+    const stage = stageEl.value;
+    const status = statusEl.value;
+    const fval = valueEl.value;
+    const rating = ratingEl.value;
+    const now = new Date();
+
+    let periodStart = null;
+    let periodEnd = Utils.endOfDay(now);
 
     if (pv === 'custom') {
-      const fv = Utils.el('f-date-from').value;
-      const tv = Utils.el('f-date-to').value;
-      periodStart = fv ? new Date(fv) : null;
-      periodEnd   = tv ? new Date(tv + 'T23:59:59') : now;
+      periodStart = Utils.toDate(Utils.el('f-date-from')?.value);
+      periodEnd = Utils.toDate(Utils.el('f-date-to')?.value, true) || Utils.endOfDay(now);
+
+      if (periodStart && periodEnd && periodStart > periodEnd) {
+        const tmp = periodStart;
+        periodStart = Utils.startOfDay(periodEnd);
+        periodEnd = Utils.endOfDay(tmp);
+      }
     } else if (pv !== '9999') {
-      periodStart = new Date(now);
-      periodStart.setDate(periodStart.getDate() - parseInt(pv));
+      const days = Utils.clampPositiveInt(pv, 30);
+      periodStart = Utils.startOfDay(Utils.addDays(now, -(days - 1)));
+      periodEnd = Utils.endOfDay(now);
     }
 
-    let vmin = null, vmax = null;
+    let vmin = null;
+    let vmax = null;
     if (fval === 'custom') {
-      vmin = parseFloat(Utils.el('f-value-min').value) || 0;
-      vmax = parseFloat(Utils.el('f-value-max').value) || Infinity;
+      vmin = Utils.parseMoney(Utils.el('f-value-min')?.value);
+      vmax = Utils.el('f-value-max')?.value === '' ? Infinity : Utils.parseMoney(Utils.el('f-value-max')?.value);
+      if (vmax < vmin) {
+        const tmp = vmin;
+        vmin = vmax;
+        vmax = tmp;
+      }
     }
 
     const sellers = State.getSellers();
+    const deals = State.getRaw().deals;
 
-    const filtered = State.getRaw().deals.filter((d) => {
-      const cd = d.created_at ? new Date(d.created_at) : null;
+    const filtered = deals.filter((d) => {
+      const createdAt = Deal.createdAt(d);
 
-      // Period
-      if (pv === 'custom') {
-        if (!cd) return false;
-        if (periodStart && cd < periodStart) return false;
-        if (cd > periodEnd) return false;
-      } else if (pv !== '9999') {
-        if (cd && cd < periodStart) return false;
+      if (pv === 'custom' || pv !== '9999') {
+        if (!createdAt) return false;
+        if (periodStart && createdAt < periodStart) return false;
+        if (periodEnd && createdAt > periodEnd) return false;
       }
 
-      // Stage
       if (stage !== 'all' && Deal.stage(d) !== stage) return false;
 
-      // Status
-      if (status === 'won'  && !Deal.isWon(d)) return false;
+      if (status === 'won' && !Deal.isWon(d)) return false;
       if (status === 'lost' && !Deal.isLost(d)) return false;
       if (status === 'open' && !Deal.isOpen(d)) return false;
 
-      // Sellers
       if (sellers.length > 0 && !sellers.includes(Deal.seller(d))) return false;
 
-      // Rating
-      if (rating !== 'all' && String(d.rating) !== rating) return false;
+      if (rating !== 'all' && String(Deal.rating(d) ?? '') !== rating) return false;
 
-      // Value
       if (fval !== 'all') {
         const amt = Deal.amount(d);
-        if (fval === 'custom')   { if (amt < vmin || amt > vmax) return false; }
-        else if (fval === '200000+') { if (amt < 200000) return false; }
-        else {
-          const [lo, hi] = fval.split('-').map(Number);
+
+        if (fval === 'custom') {
+          if (amt < vmin || amt > vmax) return false;
+        } else if (fval === '200000+') {
+          if (amt < 200000) return false;
+        } else {
+          const [lo, hi] = fval.split('-').map((n) => Number.parseFloat(n));
           if (amt < lo || amt >= hi) return false;
         }
       }
@@ -850,162 +1129,218 @@ const Filters = {
     });
 
     State.setFiltered(filtered);
-
-    // Update period label
-    const fmt = (d) => d.toLocaleDateString('pt-BR', { day:'2-digit', month:'short', year:'numeric' });
-    const days = parseInt(pv) || 0;
-    if (pv === 'custom') {
-      Utils.setText('period-display', (periodStart ? fmt(periodStart) : '?') + ' – ' + fmt(periodEnd));
-    } else if (pv === '9999') {
-      Utils.setText('period-display', 'Todo o período');
-    } else {
-      Utils.setText('period-display', fmt(periodStart) + ' – ' + fmt(now));
-    }
-
-    // Rebuild stage dropdown (preserve selection)
-    const stageSel = Utils.el('f-stage');
-    const curStage = stageSel.value;
-    const stages = [...new Set(State.getRaw().deals.map(Deal.stage).filter(Boolean))];
-    stageSel.innerHTML = '<option value="all">Todas as Etapas</option>' +
-      stages.map(s => `<option value="${Utils.esc(s)}">${Utils.esc(s)}</option>`).join('');
-    if (stages.includes(curStage)) stageSel.value = curStage;
-
-    // Rebuild seller list
-    const allSellers = [...new Set(State.getRaw().deals.map(Deal.seller).filter(Boolean))].sort();
-    this._buildSellerList(allSellers);
-
-    // Show/hide clear button
-    Utils.el('btn-clear').style.display = this._isActive() ? '' : 'none';
-
+    this._updatePeriodLabel(periodStart, periodEnd, pv);
+    this._rebuildStageOptions();
+    this._rebuildSellerList();
+    this._syncClearButton();
     Renderer.renderAll();
   },
 
+  _updatePeriodLabel(periodStart, periodEnd, pv) {
+    const fmt = (d) => d ? d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
+    if (pv === 'custom') {
+      Utils.setText('period-display', `${fmt(periodStart)} – ${fmt(periodEnd)}`);
+      return;
+    }
+
+    if (pv === '9999') {
+      Utils.setText('period-display', 'Todo o período');
+      return;
+    }
+
+    Utils.setText('period-display', `${fmt(periodStart)} – ${fmt(periodEnd)}`);
+  },
+
+  _rebuildStageOptions() {
+    const stageSel = Utils.el('f-stage');
+    if (!stageSel) return;
+
+    const current = stageSel.value;
+    const stages = [...new Set(State.getRaw().deals.map(Deal.stage).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+    stageSel.innerHTML = '<option value="all">Todas as Etapas</option>' +
+      stages.map((s) => `<option value="${Utils.esc(s)}">${Utils.esc(s)}</option>`).join('');
+
+    stageSel.value = stages.includes(current) ? current : 'all';
+  },
+
+  _rebuildSellerList() {
+    const sellerList = Utils.el('seller-list');
+    const sellerAll = Utils.el('seller-all');
+    if (!sellerList || !sellerAll) return;
+
+    const sellers = [...new Set(State.getRaw().deals.map(Deal.seller).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const current = State.getSellers().filter((s) => sellers.includes(s));
+
+    if (current.length !== State.getSellers().length) {
+      State.setSellers(current);
+    }
+
+    sellerList.innerHTML = sellers.map((s) =>
+      `<label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer">
+        <input type="checkbox" value="${Utils.esc(s)}"${current.includes(s) ? ' checked' : ''} onchange="Filters.onSellerCheck()"> ${Utils.esc(s)}
+      </label>`
+    ).join('');
+
+    sellerAll.checked = current.length === 0;
+    this._updateSellerBtn();
+  },
+
+  _syncClearButton() {
+    const clearBtn = Utils.el('btn-clear-filters');
+    if (!clearBtn) return;
+    clearBtn.style.display = this._isActive() ? '' : 'none';
+  },
+
   _isActive() {
-  if (Utils.el('f-period').value !== '30') return true;
-  if (Utils.el('f-stage').value !== 'all') return true;
-  if (Utils.el('f-status').value !== 'all') return true;
-  if (Utils.el('f-value').value !== 'all') return true;
-  if (Utils.el('f-rating').value !== 'all') return true;
+    if (Utils.el('f-period')?.value !== '30') return true;
+    if (Utils.el('f-stage')?.value !== 'all') return true;
+    if (Utils.el('f-status')?.value !== 'all') return true;
+    if (Utils.el('f-value')?.value !== 'all') return true;
+    if (Utils.el('f-rating')?.value !== 'all') return true;
 
-  if (Utils.el('f-date-from').value !== '') return true;
-  if (Utils.el('f-date-to').value !== '') return true;
-  if (Utils.el('f-value-min').value !== '') return true;
-  if (Utils.el('f-value-max').value !== '') return true;
+    if (Utils.el('f-date-from')?.value) return true;
+    if (Utils.el('f-date-to')?.value) return true;
+    if (Utils.el('f-value-min')?.value) return true;
+    if (Utils.el('f-value-max')?.value) return true;
+    if (State.getSellers().length > 0) return true;
 
-  if (State.getSellers().length > 0) return true;
-
-  return false;
-},
+    return false;
+  },
 
   clear() {
-  if (!this._isActive()) return;
+    if (!this._isActive()) return;
 
-  Utils.el('f-period').value = '30';
-  Utils.el('f-stage').value = 'all';
-  Utils.el('f-status').value = 'all';
-  Utils.el('f-value').value = 'all';
-  Utils.el('f-rating').value = 'all';
+    const defaults = [
+      ['f-period', '30'],
+      ['f-stage', 'all'],
+      ['f-status', 'all'],
+      ['f-value', 'all'],
+      ['f-rating', 'all'],
+    ];
 
-  ['f-date-from','f-date-to'].forEach(id => {
-    const el = Utils.el(id);
-    if (el) {
+    defaults.forEach(([id, value]) => {
+      const el = Utils.el(id);
+      if (el) el.value = value;
+    });
+
+    ['f-date-from', 'f-date-to', 'f-value-min', 'f-value-max'].forEach((id) => {
+      const el = Utils.el(id);
+      if (!el) return;
       el.value = '';
       el.style.display = 'none';
-    }
-  });
+    });
 
-  ['f-value-min','f-value-max'].forEach(id => {
-    const el = Utils.el(id);
-    if (el) {
-      el.value = '';
-      el.style.display = 'none';
-    }
-  });
-
-  State.setSellers([]);
-
-  const sellerAll = Utils.el('seller-all');
-  if (sellerAll) sellerAll.checked = true;
-
-  document.querySelectorAll('#seller-list input')
-    .forEach(cb => cb.checked = false);
-
-  this._updateSellerBtn();
-
-  this.apply();
-},
-  onPeriodChange() {
-    const v = Utils.el('f-period').value;
-    Utils.el('f-date-from').style.display = v === 'custom' ? '' : 'none';
-    Utils.el('f-date-to').style.display   = v === 'custom' ? '' : 'none';
-    this.apply();
-  },
-
-  onValueChange() {
-    const v = Utils.el('f-value').value;
-    Utils.el('f-value-min').style.display = v === 'custom' ? '' : 'none';
-    Utils.el('f-value-max').style.display = v === 'custom' ? '' : 'none';
-    this.apply();
-  },
-
-  toggleSellerMenu(e) {
-    e.stopPropagation();
-    const m = Utils.el('f-seller-menu');
-    m.style.display = m.style.display === 'none' ? '' : 'none';
-  },
-
-  onSellerAll() {
-    const checked = Utils.el('seller-all').checked;
     State.setSellers([]);
-    document.querySelectorAll('#seller-list input').forEach(cb => { cb.checked = checked; });
+
+    const sellerAll = Utils.el('seller-all');
+    if (sellerAll) sellerAll.checked = true;
+
+    document.querySelectorAll('#seller-list input').forEach((cb) => {
+      cb.checked = false;
+    });
+
     this._updateSellerBtn();
     this.apply();
   },
 
+  onPeriodChange() {
+    const v = Utils.el('f-period')?.value;
+    const from = Utils.el('f-date-from');
+    const to = Utils.el('f-date-to');
+    if (from) from.style.display = v === 'custom' ? '' : 'none';
+    if (to) to.style.display = v === 'custom' ? '' : 'none';
+    this.apply();
+  },
+
+  onValueChange() {
+    const v = Utils.el('f-value')?.value;
+    const min = Utils.el('f-value-min');
+    const max = Utils.el('f-value-max');
+    if (min) min.style.display = v === 'custom' ? '' : 'none';
+    if (max) max.style.display = v === 'custom' ? '' : 'none';
+    this.apply();
+  },
+
+  toggleSellerMenu(event) {
+    event?.stopPropagation();
+    const menu = Utils.el('f-seller-menu');
+    if (!menu) return;
+    menu.style.display = menu.style.display === 'none' ? '' : 'none';
+  },
+
+  onSellerAll() {
+    const sellerAll = Utils.el('seller-all');
+    if (!sellerAll) return;
+
+    if (sellerAll.checked) {
+      State.setSellers([]);
+      document.querySelectorAll('#seller-list input').forEach((cb) => {
+        cb.checked = false;
+      });
+      this._updateSellerBtn();
+      this.apply();
+      return;
+    }
+
+    const selected = [...document.querySelectorAll('#seller-list input:checked')];
+    if (!selected.length) {
+      sellerAll.checked = true;
+    }
+  },
+
   onSellerCheck() {
-    const sel = [];
-    document.querySelectorAll('#seller-list input:checked').forEach(cb => sel.push(cb.value));
-    State.setSellers(sel);
-    Utils.el('seller-all').checked = sel.length === 0;
+    const inputs = [...document.querySelectorAll('#seller-list input')];
+    const selected = inputs.filter((cb) => cb.checked).map((cb) => cb.value);
+
+    if (selected.length === 0 || selected.length === inputs.length) {
+      inputs.forEach((cb) => {
+        cb.checked = false;
+      });
+      State.setSellers([]);
+      const sellerAll = Utils.el('seller-all');
+      if (sellerAll) sellerAll.checked = true;
+    } else {
+      State.setSellers(selected);
+      const sellerAll = Utils.el('seller-all');
+      if (sellerAll) sellerAll.checked = false;
+    }
+
     this._updateSellerBtn();
     this.apply();
   },
 
   _updateSellerBtn() {
-    const n = State.getSellers().length;
-    Utils.setText('f-seller-btn', n === 0 ? 'Todos os Vendedores' : `${n} vendedor(es)`);
-  },
-
-  _buildSellerList(sellers) {
-    const cur = State.getSellers();
-    Utils.el('seller-list').innerHTML = sellers.map(s =>
-      `<label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer">
-        <input type="checkbox" value="${Utils.esc(s)}"${cur.includes(s) ? ' checked' : ''} onchange="Filters.onSellerCheck()"> ${Utils.esc(s)}
-      </label>`
-    ).join('');
+    const count = State.getSellers().length;
+    Utils.setText('f-seller-btn', count === 0 ? 'Todos os Vendedores' : `${count} vendedor(es)`);
   },
 };
 
-// Close seller menu on outside click
 document.addEventListener('click', (e) => {
-  const m = Utils.el('f-seller-menu');
-  const b = Utils.el('f-seller-btn');
-  if (m && b && !m.contains(e.target) && e.target !== b) m.style.display = 'none';
+  const menu = Utils.el('f-seller-menu');
+  const button = Utils.el('f-seller-btn');
+  if (menu && button && !menu.contains(e.target) && !button.contains(e.target)) {
+    menu.style.display = 'none';
+  }
 });
 
 /* ════════════════════════════════════════════
-   CHARTS  (update in-place when possible)
+   CHARTS
 ════════════════════════════════════════════ */
 const Charts = (() => {
   const _charts = {};
 
   function _upsertChart(key, ctx, config) {
+    if (!ctx) return null;
+
     if (_charts[key]) {
       _charts[key].data = config.data;
       if (config.options) _charts[key].options = config.options;
-      _charts[key].update('none'); // skip animation on update for perf
+      _charts[key].update('none');
       return _charts[key];
     }
+
     _charts[key] = new Chart(ctx, config);
     return _charts[key];
   }
@@ -1017,6 +1352,112 @@ const Charts = (() => {
     return g;
   }
 
+  function _resolveRange(items, dateGetter) {
+    const pv = Utils.el('f-period')?.value || '30';
+    const now = new Date();
+    let start;
+    let end;
+
+    const dates = items.map(dateGetter).filter(Boolean).sort((a, b) => a - b);
+
+    if (pv === 'custom') {
+      start = Utils.toDate(Utils.el('f-date-from')?.value) || (dates[0] ? Utils.startOfDay(dates[0]) : Utils.startOfDay(Utils.addDays(now, -29)));
+      end = Utils.toDate(Utils.el('f-date-to')?.value, true) || (dates[dates.length - 1] ? Utils.endOfDay(dates[dates.length - 1]) : Utils.endOfDay(now));
+    } else if (pv === '9999') {
+      start = dates[0] ? Utils.startOfDay(dates[0]) : Utils.startOfDay(Utils.addDays(now, -29));
+      end = dates[dates.length - 1] ? Utils.endOfDay(dates[dates.length - 1]) : Utils.endOfDay(now);
+    } else {
+      const days = Utils.clampPositiveInt(pv, 30);
+      end = Utils.endOfDay(now);
+      start = Utils.startOfDay(Utils.addDays(now, -(days - 1)));
+    }
+
+    if (start > end) {
+      const tmp = start;
+      start = Utils.startOfDay(end);
+      end = Utils.endOfDay(tmp);
+    }
+
+    const spanDays = Math.max(1, Math.floor((Utils.startOfDay(end) - Utils.startOfDay(start)) / DAY_MS) + 1);
+    const granularity = spanDays <= 31 ? 'day' : spanDays <= 90 ? 'week' : 'month';
+
+    return { start, end, spanDays, granularity };
+  }
+
+  function _buildBuckets(range) {
+    const labels = [];
+    let count = 0;
+
+    if (range.granularity === 'day') {
+      count = range.spanDays;
+      for (let i = 0; i < count; i++) {
+        const d = Utils.addDays(range.start, i);
+        labels.push(d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }));
+      }
+
+      return {
+        labels,
+        values: new Array(count).fill(0),
+        indexFor(date) {
+          return Math.floor((Utils.startOfDay(date) - Utils.startOfDay(range.start)) / DAY_MS);
+        },
+      };
+    }
+
+    if (range.granularity === 'week') {
+      count = Math.ceil(range.spanDays / 7);
+      for (let i = 0; i < count; i++) {
+        const d = Utils.addDays(range.start, i * 7);
+        labels.push(d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }));
+      }
+
+      return {
+        labels,
+        values: new Array(count).fill(0),
+        indexFor(date) {
+          return Math.floor((Utils.startOfDay(date) - Utils.startOfDay(range.start)) / (7 * DAY_MS));
+        },
+      };
+    }
+
+    const startMonth = new Date(range.start.getFullYear(), range.start.getMonth(), 1);
+    const endMonth = new Date(range.end.getFullYear(), range.end.getMonth(), 1);
+    count = (endMonth.getFullYear() - startMonth.getFullYear()) * 12 + (endMonth.getMonth() - startMonth.getMonth()) + 1;
+
+    for (let i = 0; i < count; i++) {
+      const d = new Date(startMonth.getFullYear(), startMonth.getMonth() + i, 1);
+      labels.push(d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }));
+    }
+
+    return {
+      labels,
+      values: new Array(count).fill(0),
+      indexFor(date) {
+        return (date.getFullYear() - startMonth.getFullYear()) * 12 + (date.getMonth() - startMonth.getMonth());
+      },
+    };
+  }
+
+  function _buildSeries(items, dateGetter, valueGetter) {
+    const range = _resolveRange(items, dateGetter);
+    const buckets = _buildBuckets(range);
+
+    for (const item of items) {
+      const date = dateGetter(item);
+      if (!date || date < range.start || date > range.end) continue;
+
+      const idx = buckets.indexFor(date);
+      if (idx < 0 || idx >= buckets.values.length) continue;
+      buckets.values[idx] += valueGetter(item);
+    }
+
+    return {
+      labels: buckets.labels,
+      values: buckets.values,
+      granularity: range.granularity,
+    };
+  }
+
   const BASE_SCALES = {
     x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#9CA3AF', font: { size: 11 } } },
     y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#9CA3AF', font: { size: 11 } }, beginAtZero: true },
@@ -1025,123 +1466,82 @@ const Charts = (() => {
   return {
     setLineMode(mode, btn) {
       State.setLineMode(mode);
-      document.querySelectorAll('.pill-row .pill').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+      document.querySelectorAll('.pill-row .pill').forEach((b) => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
       this.renderLine();
     },
 
     renderDonut(canvasId, key, stats) {
-      const ctx = Utils.el(canvasId).getContext('2d');
-      const { openCount: open, wonCount: won, lostCount: lost } = stats;
+      const ctx = Utils.getCanvasContext(canvasId);
+      const open = stats.openCount || 0;
+      const won = stats.wonCount || 0;
+      const lost = stats.lostCount || 0;
+
       _upsertChart(key, ctx, {
         type: 'doughnut',
         data: {
           labels: [`Abertos (${open})`, `Ganhos (${won})`, `Perdidos (${lost})`],
-          datasets: [{ data: [open, won, lost], backgroundColor: ['#2563EB','#059669','#DC2626'], borderWidth: 0, hoverOffset: 5 }],
+          datasets: [{
+            data: [open, won, lost],
+            backgroundColor: ['#2563EB', '#059669', '#DC2626'],
+            borderWidth: 0,
+            hoverOffset: 5,
+          }],
         },
         options: {
-          cutout: '72%', responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom', labels: { color: '#374151', font: { size: 11 }, padding: 14 } } },
+          cutout: '72%',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: '#374151', font: { size: 11 }, padding: 14 },
+            },
+          },
         },
       });
     },
 
     renderLine() {
-      const filt = State.getFiltered();
-      const pv   = Utils.el('f-period').value;
+      const filtered = State.getFiltered();
       const mode = State.getLineMode();
-      const now  = new Date();
-
-      let days = parseInt(pv) || 30;
-      let periodStart = new Date(now);
-
-      if (pv === 'custom') {
-        const fv = Utils.el('f-date-from').value;
-        const tv = Utils.el('f-date-to').value;
-        const ps = fv ? new Date(fv) : new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const pe = tv ? new Date(tv + 'T23:59:59') : now;
-        days = Math.round((pe - ps) / 864e5);
-        periodStart = new Date(ps);
-      } else if (pv === '9999') {
-        const timestamps = filt.filter(d => d.created_at).map(d => +new Date(d.created_at));
-        periodStart = timestamps.length
-          ? new Date(Math.min(...timestamps))
-          : new Date(now.getFullYear() - 1, now.getMonth(), 1);
-        days = Math.round((now - periodStart) / 864e5);
-      } else {
-        periodStart.setDate(periodStart.getDate() - days);
-      }
-
-      const gran = days <= 31 ? 'day' : days <= 90 ? 'week' : 'month';
+      const amountFn = mode === 'value' ? (d) => Deal.amount(d) : () => 1;
+      const series = _buildSeries(filtered, Deal.createdAt, amountFn);
       const granLabels = { day: 'Visão diária', week: 'Visão semanal', month: 'Visão mensal' };
-      Utils.setText('line-sub', granLabels[gran] + ' do período');
+      const maxTicks = series.granularity === 'day' ? 10 : series.granularity === 'week' ? 13 : 12;
 
-      const amtFn = mode === 'value'
-        ? (arr) => arr.reduce((s, x) => s + Deal.amount(x), 0)
-        : (arr) => arr.length;
+      Utils.setText('line-sub', `${granLabels[series.granularity]} do período`);
 
-      const labels = [], vals = [];
-
-      if (gran === 'day') {
-        for (let i = days; i >= 0; i--) {
-          const d = new Date(now);
-          d.setDate(d.getDate() - i);
-          const dStr = d.toDateString();
-          labels.push(d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }));
-          vals.push(amtFn(filt.filter(x => x.created_at && new Date(x.created_at).toDateString() === dStr)));
-        }
-      } else if (gran === 'week') {
-        const nw = Math.ceil(days / 7) + 1;
-        for (let i = nw - 1; i >= 0; i--) {
-          const we = new Date(now); we.setDate(we.getDate() - i * 7);
-          const ws = new Date(we); ws.setDate(ws.getDate() - 6);
-          if (ws < periodStart) ws.setTime(periodStart.getTime());
-          labels.push(ws.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }));
-          const wsT = ws.getTime(), weT = we.getTime();
-          vals.push(amtFn(filt.filter(x => {
-            if (!x.created_at) return false;
-            const t = +new Date(x.created_at);
-            return t >= wsT && t <= weT;
-          })));
-        }
-      } else {
-        const nm = Math.min(Math.max(Math.ceil(days / 30), 2), 24);
-        for (let i = nm - 1; i >= 0; i--) {
-          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          const mo = d.getMonth(), yr = d.getFullYear();
-          labels.push(d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }));
-          vals.push(amtFn(filt.filter(x => {
-            if (!x.created_at) return false;
-            const cd = new Date(x.created_at);
-            return cd.getMonth() === mo && cd.getFullYear() === yr;
-          })));
-        }
-      }
-
-      const ctx = Utils.el('lineChart').getContext('2d');
-      const maxTicks = gran === 'day' ? 10 : gran === 'week' ? 13 : 12;
+      const ctx = Utils.getCanvasContext('lineChart');
+      if (!ctx) return;
 
       if (_charts.line) {
-        _charts.line.data.labels = labels;
-        _charts.line.data.datasets[0].data = vals;
-        _charts.line.data.datasets[0].pointRadius = gran === 'day' ? 2 : 4;
+        _charts.line.data.labels = series.labels;
+        _charts.line.data.datasets[0].data = series.values;
+        _charts.line.data.datasets[0].pointRadius = series.granularity === 'day' ? 2 : 4;
         _charts.line.options.scales.x.ticks.maxTicksLimit = maxTicks;
-        _charts.line.update();
+        _charts.line.update('none');
         return;
       }
 
       _charts.line = new Chart(ctx, {
         type: 'line',
         data: {
-          labels,
+          labels: series.labels,
           datasets: [{
-            data: vals, borderColor: '#2563EB', backgroundColor: _gradient(ctx),
-            fill: true, tension: 0.35, pointBackgroundColor: '#2563EB',
-            pointRadius: gran === 'day' ? 2 : 4, borderWidth: 2,
+            data: series.values,
+            borderColor: '#2563EB',
+            backgroundColor: _gradient(ctx),
+            fill: true,
+            tension: 0.35,
+            pointBackgroundColor: '#2563EB',
+            pointRadius: series.granularity === 'day' ? 2 : 4,
+            borderWidth: 2,
           }],
         },
         options: {
-          responsive: true, maintainAspectRatio: false,
+          responsive: true,
+          maintainAspectRatio: false,
           plugins: { legend: { display: false } },
           scales: {
             x: { ...BASE_SCALES.x, ticks: { ...BASE_SCALES.x.ticks, maxTicksLimit: maxTicks, maxRotation: 45 } },
@@ -1151,87 +1551,35 @@ const Charts = (() => {
       });
     },
 
-    renderRevenue(filt, pv) {
-      // Revenue uses closed_at (financial close), grouped by same granularity as line chart
-      const now = new Date();
-      let days = parseInt(pv) || 30;
-      let periodStart = new Date(now);
-
-      if (pv === 'custom') {
-        const fv = Utils.el('f-date-from').value;
-        const tv = Utils.el('f-date-to').value;
-        const ps = fv ? new Date(fv) : new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const pe = tv ? new Date(tv + 'T23:59:59') : now;
-        days = Math.round((pe - ps) / 864e5);
-        periodStart = new Date(ps);
-      } else if (pv === '9999') {
-        const timestamps = filt.filter(d => Deal.revenueDate(d)).map(d => +new Date(Deal.revenueDate(d)));
-        periodStart = timestamps.length
-          ? new Date(Math.min(...timestamps))
-          : new Date(now.getFullYear() - 1, now.getMonth(), 1);
-        days = Math.round((now - periodStart) / 864e5);
-      } else {
-        periodStart.setDate(periodStart.getDate() - days);
-      }
-
-      const gran = days <= 31 ? 'day' : days <= 90 ? 'week' : 'month';
+    renderRevenue(filtered) {
+      const wonDeals = filtered.filter((d) => Deal.isWon(d));
+      const series = _buildSeries(wonDeals, Deal.revenueDate, (d) => Deal.amount(d));
       const granLabels = { day: 'Visão diária', week: 'Visão semanal', month: 'Visão mensal' };
-      Utils.setText('rev-sub', granLabels[gran] + ' — receita por data de fechamento');
+      const colors = series.values.map((_, i) => i === series.values.length - 1 ? '#1A2B5E' : '#93C5FD');
 
-      const wonDeals = filt.filter(Deal.isWon);
-      const labels = [], vals = [];
+      Utils.setText('rev-sub', `${granLabels[series.granularity]} — receita por data de fechamento`);
 
-      if (gran === 'day') {
-        for (let i = days; i >= 0; i--) {
-          const d = new Date(now); d.setDate(d.getDate() - i);
-          const dStr = d.toDateString();
-          labels.push(d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }));
-          vals.push(wonDeals.filter(x => {
-            const rd = Deal.revenueDate(x);
-            return rd && new Date(rd).toDateString() === dStr;
-          }).reduce((s, x) => s + Deal.amount(x), 0));
-        }
-      } else if (gran === 'week') {
-        const nw = Math.ceil(days / 7) + 1;
-        for (let i = nw - 1; i >= 0; i--) {
-          const we = new Date(now); we.setDate(we.getDate() - i * 7);
-          const ws = new Date(we); ws.setDate(ws.getDate() - 6);
-          labels.push(ws.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }));
-          const wsT = ws.getTime(), weT = we.getTime();
-          vals.push(wonDeals.filter(x => {
-            const rd = Deal.revenueDate(x);
-            if (!rd) return false;
-            const t = +new Date(rd);
-            return t >= wsT && t <= weT;
-          }).reduce((s, x) => s + Deal.amount(x), 0));
-        }
-      } else {
-        const nm = Math.min(Math.max(Math.ceil(days / 30), 2), 24);
-        for (let i = nm - 1; i >= 0; i--) {
-          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          const mo = d.getMonth(), yr = d.getFullYear();
-          labels.push(d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }));
-          vals.push(wonDeals.filter(x => {
-            const rd = Deal.revenueDate(x);
-            if (!rd) return false;
-            const cd = new Date(rd);
-            return cd.getMonth() === mo && cd.getFullYear() === yr;
-          }).reduce((s, x) => s + Deal.amount(x), 0));
-        }
-      }
-
-      const ctx = Utils.el('revChart').getContext('2d');
-      const colors = vals.map((_, i) => i === vals.length - 1 ? '#1A2B5E' : '#93C5FD');
-
+      const ctx = Utils.getCanvasContext('revChart');
       _upsertChart('rev', ctx, {
         type: 'bar',
-        data: { labels, datasets: [{ data: vals, backgroundColor: colors, borderRadius: 5, borderSkipped: false }] },
+        data: {
+          labels: series.labels,
+          datasets: [{ data: series.values, backgroundColor: colors, borderRadius: 5, borderSkipped: false }],
+        },
         options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` R$ ${Utils.fmtCurrency(c.parsed.y)}` } } },
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: (c) => ` R$ ${Utils.fmtCurrency(c.parsed.y)}` } },
+          },
           scales: {
             x: { grid: { display: false }, ticks: { color: '#9CA3AF', font: { size: 11 }, maxTicksLimit: 10 } },
-            y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#9CA3AF', font: { size: 11 }, callback: v => 'R$' + Utils.fmtCurrency(v) }, beginAtZero: true },
+            y: {
+              grid: { color: 'rgba(0,0,0,0.04)' },
+              ticks: { color: '#9CA3AF', font: { size: 11 }, callback: (v) => 'R$' + Utils.fmtCurrency(v) },
+              beginAtZero: true,
+            },
           },
         },
       });
@@ -1239,15 +1587,18 @@ const Charts = (() => {
 
     renderStage(stageMap) {
       const entries = Object.entries(stageMap).sort((a, b) => b[1] - a[1]).slice(0, 8);
-      const labels = entries.map(e => e[0]);
-      const data   = entries.map(e => e[1]);
-      const ctx    = Utils.el('stageChart').getContext('2d');
+      const ctx = Utils.getCanvasContext('stageChart');
 
       _upsertChart('stage', ctx, {
         type: 'bar',
-        data: { labels, datasets: [{ data, backgroundColor: '#2563EB', borderRadius: 4 }] },
+        data: {
+          labels: entries.map((e) => e[0]),
+          datasets: [{ data: entries.map((e) => e[1]), backgroundColor: '#2563EB', borderRadius: 4 }],
+        },
         options: {
-          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
           plugins: { legend: { display: false } },
           scales: {
             x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#9CA3AF', font: { size: 10 } }, beginAtZero: true },
@@ -1259,20 +1610,28 @@ const Charts = (() => {
 
     renderOriginRev(sourceRevMap) {
       const sorted = Object.entries(sourceRevMap).sort((a, b) => b[1] - a[1]).slice(0, 6);
-      const ctx = Utils.el('originRevChart').getContext('2d');
+      const ctx = Utils.getCanvasContext('originRevChart');
 
       _upsertChart('originRev', ctx, {
         type: 'bar',
         data: {
-          labels: sorted.map(e => e[0]),
-          datasets: [{ data: sorted.map(e => e[1]), backgroundColor: '#2563EB', borderRadius: 4 }],
+          labels: sorted.map((e) => e[0]),
+          datasets: [{ data: sorted.map((e) => e[1]), backgroundColor: '#2563EB', borderRadius: 4 }],
         },
         options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` R$ ${Utils.fmtCurrency(c.parsed.y)}` } } },
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: (c) => ` R$ ${Utils.fmtCurrency(c.parsed.y)}` } },
+          },
           scales: {
             x: { grid: { display: false }, ticks: { color: '#9CA3AF', font: { size: 10 } } },
-            y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#9CA3AF', font: { size: 10 }, callback: v => 'R$' + Utils.fmtCurrency(v) }, beginAtZero: true },
+            y: {
+              grid: { color: 'rgba(0,0,0,0.04)' },
+              ticks: { color: '#9CA3AF', font: { size: 10 }, callback: (v) => 'R$' + Utils.fmtCurrency(v) },
+              beginAtZero: true,
+            },
           },
         },
       });
@@ -1281,28 +1640,30 @@ const Charts = (() => {
 })();
 
 /* ════════════════════════════════════════════
-   RENDERER  (orchestrates all render calls)
+   RENDERER
 ════════════════════════════════════════════ */
 const Renderer = {
+  _tableDeals: [],
+
   renderAll() {
-    const filt = State.getFiltered();
-    const stats = computeStats(filt);
-    const pv = Utils.el('f-period').value;
+    const filtered = State.getFiltered();
+    const stats = computeStats(filtered);
 
     this._renderKPIs(stats);
-    Charts.renderDonut('donutChart',  'donut',  stats);
+    Charts.renderDonut('donutChart', 'donut', stats);
     Charts.renderDonut('donutChartM', 'donutM', stats);
     Charts.renderLine();
-    Charts.renderRevenue(filt, pv);
+    Charts.renderRevenue(filtered);
     Charts.renderStage(stats.stageMap);
     Charts.renderOriginRev(stats.sourceRevMap);
     this._renderFunnel(stats.stageMap);
     this._renderOrigins(stats.sourceMap, stats.total);
-    this._renderDealsTable(filt);
+    this._renderDealsTable(filtered);
   },
 
   _renderKPIs(stats) {
     const { total, wonCount, openCount, openRevenue, wonRevenue, convRate, avgTicket } = stats;
+    const openShare = total > 0 ? (openCount / total) * 100 : 0;
 
     Utils.animateNumber('v-leads', total);
     Utils.setText('s-leads', `${total} negócios no período`);
@@ -1310,30 +1671,37 @@ const Renderer = {
 
     Utils.animateNumber('v-deals', openCount);
     Utils.setText('s-deals', `R$ ${Utils.fmtCurrency(openRevenue)} em aberto`);
+    UI.setDelta('d-deals', openShare >= 50 ? 'flat' : 'down', `${openShare.toFixed(0)}%`);
 
     Utils.animateNumber('v-won', wonCount);
     Utils.setText('s-won', `R$ ${Utils.fmtCurrency(wonRevenue)} · ticket médio R$ ${Utils.fmtCurrency(avgTicket)}`);
     UI.setDelta('d-won', wonCount > 0 ? 'up' : 'flat', wonCount > 0 ? '↑ bom' : '—');
 
     Utils.setText('v-conv', `${convRate.toFixed(1)}%`);
-    Utils.setText('s-conv', 'ganhos ÷ total de negócios');
+    Utils.setText('s-conv', 'ganhos ÷ (ganhos + perdidos)');
     UI.setDelta('d-conv', convRate >= 30 ? 'up' : convRate >= 15 ? 'flat' : 'down', `${convRate.toFixed(1)}%`);
   },
 
   _renderFunnel(stageMap) {
-    const sorted = Object.entries(stageMap).sort((a, b) => b[1] - a[1]);
-    const wrap   = Utils.el('funnel-wrap');
+    const wrap = Utils.el('funnel-wrap');
+    if (!wrap) return;
 
-    if (!sorted.length) {
+    const rawOrder = [...new Set(State.getRaw().deals.map(Deal.stage).filter(Boolean))];
+    const stageNames = rawOrder.concat(Object.keys(stageMap).filter((name) => !rawOrder.includes(name)));
+    const ordered = stageNames.map((name) => [name, stageMap[name] || 0]).filter(([, count]) => count > 0);
+
+    if (!ordered.length) {
       wrap.innerHTML = '<div class="empty"><div class="ei">📊</div><p>Sem dados</p></div>';
       return;
     }
 
-    const max = sorted[0][1];
-    wrap.innerHTML = sorted.map(([name, count], i) => {
-      const pct  = ((count / max) * 100).toFixed(0);
-      const conv = i > 0 ? ((count / sorted[i - 1][1]) * 100).toFixed(0) : '100';
+    const max = ordered[0][1] || 1;
+    wrap.innerHTML = ordered.map(([name, count], i) => {
+      const pct = ((count / max) * 100).toFixed(0);
+      const prev = i > 0 ? ordered[i - 1][1] : count;
+      const conv = prev > 0 ? ((count / prev) * 100).toFixed(0) : '0';
       const color = CONFIG.CHART_COLORS[i % CONFIG.CHART_COLORS.length];
+
       return `<div class="funnel-step" onclick="UI.drillFunnel('${Utils.esc(name)}')" data-stage="${Utils.esc(name)}">
         <div class="f-top">
           <div class="f-name">${Utils.esc(name)}</div>
@@ -1346,8 +1714,10 @@ const Renderer = {
   },
 
   _renderOrigins(sourceMap, total) {
+    const wrap = Utils.el('origin-wrap');
+    if (!wrap) return;
+
     const sorted = Object.entries(sourceMap).sort((a, b) => b[1] - a[1]).slice(0, 7);
-    const wrap   = Utils.el('origin-wrap');
 
     if (!sorted.length) {
       wrap.innerHTML = '<div class="empty"><div class="ei">🔍</div><p>Sem dados</p></div>';
@@ -1368,28 +1738,28 @@ const Renderer = {
   },
 
   _renderDealsTable(deals) {
-    Utils.setText('tbl-count', `${deals.length} negócio${deals.length !== 1 ? 's' : ''}`);
     const tbody = Utils.el('deals-body');
+    if (!tbody) return;
 
-    if (!deals.length) {
+    const visibleDeals = deals.slice(0, 200);
+    this._tableDeals = visibleDeals;
+    Utils.setText('tbl-count', deals.length > 200 ? `${deals.length} negócios · exibindo 200` : `${deals.length} negócio${deals.length !== 1 ? 's' : ''}`);
+
+    if (!visibleDeals.length) {
       tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="ei">💼</div><p>Nenhum negócio encontrado</p></div></td></tr>';
       return;
     }
 
-    // Store deals array for drill-down by index (avoids encoding full JSON in DOM)
-    Renderer._tableDeals = deals;
-
-    const fragment = document.createDocumentFragment();
     const tmp = document.createElement('tbody');
-
-    tmp.innerHTML = deals.slice(0, 200).map((d, i) => {
-      const stage  = Deal.stage(d);
-      const isWon  = Deal.isWon(d);
+    tmp.innerHTML = visibleDeals.map((d, i) => {
+      const stage = Deal.stage(d);
+      const isWon = Deal.isWon(d);
       const isLost = Deal.isLost(d);
-      const lbl    = isWon ? 'Ganho' : isLost ? 'Perdido' : 'Aberto';
-      const cls    = isWon ? 't-won' : isLost ? 't-lost' : 't-open';
-      const dt     = Utils.fmtDate(d.created_at);
+      const lbl = isWon ? 'Ganho' : isLost ? 'Perdido' : 'Aberto';
+      const cls = isWon ? 't-won' : isLost ? 't-lost' : 't-open';
+      const dt = Utils.fmtDate(d.created_at);
       const seller = Utils.esc(Deal.seller(d) || '—');
+
       return `<tr onclick="UI.drillDeal(${i})">
         <td>${Utils.esc(d.name || '—')}</td>
         <td class="td-mono">R$ ${Utils.fmtCurrency(Deal.amount(d))}</td>
@@ -1400,15 +1770,12 @@ const Renderer = {
       </tr>`;
     }).join('');
 
-    while (tmp.firstChild) fragment.appendChild(tmp.firstChild);
-    tbody.replaceChildren(fragment);
+    tbody.replaceChildren(...tmp.childNodes);
   },
-
-  _tableDeals: [],
 };
 
 /* ════════════════════════════════════════════
-   UI  (modals, status, helpers)
+   UI
 ════════════════════════════════════════════ */
 const UI = {
   setDelta(id, cls, txt) {
@@ -1419,8 +1786,12 @@ const UI = {
   },
 
   setStatus(ok) {
-    Utils.el('s-dot').className = 'status-dot' + (ok ? '' : ' err');
-    Utils.el('s-text').textContent = ok
+    const dot = Utils.el('s-dot');
+    const text = Utils.el('s-text');
+    if (!dot || !text) return;
+
+    dot.className = 'status-dot' + (ok ? '' : ' err');
+    text.textContent = ok
       ? 'Atualizado ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
       : 'Erro de conexão';
   },
@@ -1429,41 +1800,48 @@ const UI = {
     const d = Renderer._tableDeals[idx];
     if (!d) return;
 
-    const isWon  = Deal.isWon(d);
+    const isWon = Deal.isWon(d);
     const isLost = Deal.isLost(d);
     const status = isWon ? '✅ Ganho' : isLost ? '❌ Perdido' : '🔵 Aberto';
+    const modal = Utils.el('modal');
+    const body = Utils.el('modal-body');
+    if (!modal || !body) return;
 
     Utils.setText('modal-title', d.name || 'Detalhes');
-    Utils.el('modal-body').innerHTML = `<div class="modal-field-grid">
-      ${this._field('Nome',        Utils.esc(d.name || '—'))}
-      ${this._field('Valor',       'R$ ' + Utils.fmtCurrency(Deal.amount(d)))}
-      ${this._field('Status',      status)}
-      ${this._field('Etapa',       Utils.esc(Deal.stage(d)))}
+    body.innerHTML = `<div class="modal-field-grid">
+      ${this._field('Nome', Utils.esc(d.name || '—'))}
+      ${this._field('Valor', 'R$ ' + Utils.fmtCurrency(Deal.amount(d)))}
+      ${this._field('Status', status)}
+      ${this._field('Etapa', Utils.esc(Deal.stage(d)))}
       ${this._field('Responsável', Utils.esc(Deal.seller(d) || '—'))}
-      ${this._field('Criado em',   Utils.fmtDate(d.created_at))}
-      ${this._field('Fechado em',  Utils.fmtDate(d.closed_at))}
-      ${this._field('Origem',      Utils.esc(Deal.source(d)))}
-      ${this._field('Ticket',      'R$ ' + Utils.fmtCurrency(Deal.amount(d)))}
-      ${this._field('ID',          String(d.id || '—'))}
+      ${this._field('Criado em', Utils.fmtDate(d.created_at))}
+      ${this._field('Fechado em', Utils.fmtDate(d.closed_at))}
+      ${this._field('Origem', Utils.esc(Deal.source(d)))}
+      ${this._field('Ticket', 'R$ ' + Utils.fmtCurrency(Deal.amount(d)))}
+      ${this._field('ID', Utils.esc(String(d.id || '—')))}
     </div>`;
-    Utils.el('modal').classList.add('open');
+    modal.classList.add('open');
   },
 
   drillFunnel(stage) {
-    const rows = State.getFiltered().filter(d => Deal.stage(d) === stage);
+    const modal = Utils.el('modal');
+    const body = Utils.el('modal-body');
+    if (!modal || !body) return;
+
+    const rows = State.getFiltered().filter((d) => Deal.stage(d) === stage);
     Utils.setText('modal-title', `${stage} — ${rows.length} negócios`);
 
     if (!rows.length) {
-      Utils.el('modal-body').innerHTML = '<div class="empty"><p>Sem negócios nessa etapa</p></div>';
+      body.innerHTML = '<div class="empty"><p>Sem negócios nessa etapa</p></div>';
     } else {
-      Utils.el('modal-body').innerHTML = `
+      body.innerHTML = `
         <table style="width:100%;border-collapse:collapse;font-size:12px">
           <thead><tr style="border-bottom:1px solid var(--border)">
             <th style="padding:8px;text-align:left;color:var(--text4);font-size:10px;text-transform:uppercase">Nome</th>
             <th style="padding:8px;text-align:left;color:var(--text4);font-size:10px;text-transform:uppercase">Valor</th>
             <th style="padding:8px;text-align:left;color:var(--text4);font-size:10px;text-transform:uppercase">Status</th>
           </tr></thead>
-          <tbody>${rows.map(d => `
+          <tbody>${rows.map((d) => `
             <tr style="border-bottom:1px solid rgba(226,230,239,0.5)">
               <td style="padding:9px 8px;font-weight:600;color:var(--text)">${Utils.esc(d.name || '—')}</td>
               <td style="padding:9px 8px;font-family:monospace">R$ ${Utils.fmtCurrency(Deal.amount(d))}</td>
@@ -1473,12 +1851,14 @@ const UI = {
         </table>`;
     }
 
-    Utils.el('modal').classList.add('open');
+    modal.classList.add('open');
   },
 
   closeModal(e) {
-    if (!e || e.target === Utils.el('modal')) {
-      Utils.el('modal').classList.remove('open');
+    const modal = Utils.el('modal');
+    if (!modal) return;
+    if (!e || e.target === modal) {
+      modal.classList.remove('open');
     }
   },
 
@@ -1494,13 +1874,29 @@ const UI = {
    BOOT
 ════════════════════════════════════════════ */
 window.addEventListener('DOMContentLoaded', () => {
-  Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
+  if (typeof Chart !== 'undefined') {
+    Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
+  }
 
-  Utils.el('btn-login').addEventListener('click', () => Auth.login());
-  Utils.el('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') Auth.login(); });
-  Utils.el('login-user').addEventListener('keydown', e => { if (e.key === 'Enter') Utils.el('login-pass').focus(); });
+  Utils.el('btn-login')?.addEventListener('click', () => Auth.login());
+  Utils.el('login-pass')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') Auth.login();
+  });
+  Utils.el('login-user')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') Utils.el('login-pass')?.focus();
+  });
 
-  if (Auth.check()) Dashboard.init();
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') UI.closeModal();
+  });
+
+  if (Auth.check()) {
+    Dashboard.init();
+  }
+});
+
+window.addEventListener('beforeunload', () => {
+  State.stopAutoRefresh();
 });
 </script>
 </body>
