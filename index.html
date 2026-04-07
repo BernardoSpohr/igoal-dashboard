@@ -417,7 +417,10 @@ tbody td:first-child{color:var(--text);font-weight:600;}
    CONFIG
 ════════════════════════════════════════════ */
 const CONFIG = Object.freeze({
-  PROXY: 'https://script.google.com/macros/s/AKfycbwR3d0FY9IqEQr_sIRvOB8beircEz7vXNk1cDYE5QwoFZmgAUQf5mJ7yA3nsd3SL-hd/exec',
+  PROXY_BASE: 'https://script.google.com/macros/s/AKfycbwR3d0FY9IqEQr_sIRvOB8beircEz7vXNk1cDYE5QwoFZmgAUQf5mJ7yA3nsd3SL-hd/exec',
+  // API_TOKEN is shared with the Apps Script doGet() validator.
+  // Rotate this value together with the Apps Script token when credentials change.
+  API_TOKEN: 'igoal-tk-2026',
   CACHE_KEY: 'ig_cache_v3',
   CACHE_TTL: 5 * 60 * 1000,
   AUTO_REFRESH_MS: 5 * 60 * 1000,
@@ -425,6 +428,7 @@ const CONFIG = Object.freeze({
   LOGIN_LOCKOUT_MS: 30 * 1000,
   CHART_COLORS: ['#1E40AF','#2563EB','#3B82F6','#60A5FA','#93C5FD','#BFDBFE'],
   SESSION_KEY: 'ig_auth',
+  TOKEN_KEY: 'ig_token',
 });
 
 /* ════════════════════════════════════════════
@@ -466,8 +470,19 @@ const Utils = {
       .replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   },
 
+  // Handles both "10.000,00" (pt-BR) and "10000.00" (API) formats safely
+  parseMoney(v) {
+    if (!v && v !== 0) return 0;
+    const str = String(v).trim();
+    // pt-BR format: dots as thousand separators, comma as decimal
+    if (/^\d{1,3}(\.\d{3})*(,\d+)?$/.test(str)) {
+      return Number(str.replace(/\./g, '').replace(',', '.')) || 0;
+    }
+    return Number(str.replace(',', '.')) || 0;
+  },
+
   fmtCurrency(n) {
-    const v = parseFloat(n) || 0;
+    const v = Utils.parseMoney(n);
     if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
     if (v >= 1e3) return (v / 1e3).toFixed(1) + 'K';
     return v.toLocaleString('pt-BR', { minimumFractionDigits: 0 });
@@ -503,7 +518,7 @@ const Utils = {
    DEAL ACCESSORS  (normalise inconsistent API fields)
 ════════════════════════════════════════════ */
 const Deal = {
-  amount: (d) => parseFloat(d.amount_total) || parseFloat(d.amount_montly) || parseFloat(d.amount) || 0,
+  amount: (d) => Utils.parseMoney(d.amount_total) || Utils.parseMoney(d.amount_montly) || Utils.parseMoney(d.amount) || 0,
   stage:  (d) => (d.deal_stage && typeof d.deal_stage === 'object' ? d.deal_stage.name : d.deal_stage) || 'Sem etapa',
   source: (d) => (d.deal_source && typeof d.deal_source === 'object' ? d.deal_source.name : d.deal_source) || d.lead_source || d.source || 'Direto',
   seller: (d) => (d.user && d.user.name) || d.responsible_name || '',
@@ -647,10 +662,17 @@ const Cache = {
    API
 ════════════════════════════════════════════ */
 const API = {
+  _url(endpoint) {
+    const token = sessionStorage.getItem(CONFIG.TOKEN_KEY) || CONFIG.API_TOKEN;
+    return `${CONFIG.PROXY_BASE}?token=${encodeURIComponent(token)}&endpoint=${encodeURIComponent(endpoint)}`;
+  },
+
   async get(endpoint) {
-    const res = await fetch(`${CONFIG.PROXY}?endpoint=${encodeURIComponent(endpoint)}`);
+    const res = await fetch(this._url(endpoint));
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return JSON.parse((await res.text()).trim());
+    const data = JSON.parse((await res.text()).trim());
+    if (data.error === 'Unauthorized') throw new Error('Unauthorized');
+    return data;
   },
 
   async fetchPage(page) {
