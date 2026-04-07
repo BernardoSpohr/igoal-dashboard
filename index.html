@@ -221,7 +221,7 @@ tbody td:first-child{color:var(--text);font-weight:600;}
     <div class="error-icon">⚠️</div>
     <h2>Não foi possível carregar os dados</h2>
     <p id="error-msg">Verifique se o Apps Script está publicado corretamente.</p>
-    <button class="btn-retry" onclick="Dashboard.init()">Tentar novamente</button>
+    <button class="btn-clear" id="btn-clear" style="display:block" onclick="Filters.clear()">✕ Limpar filtros</button>
   </div>
 </div>
 
@@ -880,13 +880,21 @@ const Filters = {
   },
 
   _isActive() {
-    return Utils.el('f-period').value !== '30'
-      || Utils.el('f-stage').value  !== 'all'
-      || Utils.el('f-status').value !== 'all'
-      || Utils.el('f-value').value  !== 'all'
-      || Utils.el('f-rating').value !== 'all'
-      || State.getSellers().length > 0;
-  },
+  if (Utils.el('f-period').value !== '30') return true;
+  if (Utils.el('f-stage').value !== 'all') return true;
+  if (Utils.el('f-status').value !== 'all') return true;
+  if (Utils.el('f-value').value !== 'all') return true;
+  if (Utils.el('f-rating').value !== 'all') return true;
+
+  if (Utils.el('f-date-from').value !== '') return true;
+  if (Utils.el('f-date-to').value !== '') return true;
+  if (Utils.el('f-value-min').value !== '') return true;
+  if (Utils.el('f-value-max').value !== '') return true;
+
+  if (State.getSellers().length > 0) return true;
+
+  return false;
+},
 
   clear() {
     Utils.el('f-period').value = '30';
