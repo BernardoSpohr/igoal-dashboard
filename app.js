@@ -447,6 +447,9 @@ const Filters = {
       Utils.setText('period-display', fmt(periodStart) + ' – ' + fmt(now));
     }
 
+    // Check active state BEFORE rebuilding dropdowns (values are still set)
+    const isActive = this._isActive();
+
     // Rebuild stage dropdown (preserve selection)
     const stageSel = Utils.el('f-stage');
     const curStage = stageSel.value;
@@ -460,7 +463,7 @@ const Filters = {
     this._buildSellerList(allSellers);
 
     // Show/hide clear button
-    Utils.el('btn-clear-filters').style.display = this._isActive() ? 'inline-flex' : 'none';
+    Utils.el('btn-clear-filters').style.display = isActive ? 'inline-flex' : 'none';
 
     Renderer.renderAll();
   },
