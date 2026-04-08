@@ -460,7 +460,7 @@ const Filters = {
     this._buildSellerList(allSellers);
 
     // Show/hide clear button
-    Utils.el('btn-clear').style.display = this._isActive() ? 'inline-flex' : 'none';
+    Utils.el('btn-clear-filters').style.display = this._isActive() ? 'inline-flex' : 'none';
 
     Renderer.renderAll();
   },
