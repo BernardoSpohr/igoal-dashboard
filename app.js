@@ -366,6 +366,10 @@ const Dashboard = {
    FILTERS
 ════════════════════════════════════════════ */
 const Filters = {
+   changeFunnel() {
+    Filters.populate();
+    Filters.apply();
+  },
   apply() {
     const pv     = Utils.el('f-period').value;
     const stage  = Utils.el('f-stage').value;
@@ -453,10 +457,19 @@ const Filters = {
     // Rebuild stage dropdown (preserve selection)
     const stageSel = Utils.el('f-stage');
     const curStage = stageSel.value;
-    const stages = [...new Set(State.getRaw().deals.map(Deal.stage).filter(Boolean))];
-    stageSel.innerHTML = '<option value="all">Todas as Etapas</option>' +
-      stages.map(s => `<option value="${Utils.esc(s)}">${Utils.esc(s)}</option>`).join('');
-    if (stages.includes(curStage)) stageSel.value = curStage;
+    const funnel = Utils.el('f-funnel').value;
+
+    const funnelStages = {
+     oportunidades: ['Lead Carteira','Faturado Funil','PoC/Demo Funil','StandBy Carteira','Carteira','Qualificado Carteira','Negociação Carteira','Vendido Funil','Perdido Carteira','Perdido Funil','StandBy Funil','Qualificado Funil','Proposta Funil'],
+     carteira: ['Lead Carteira','StandBy Carteira','Carteira','Qualificado Carteira','Negociação Carteira','Perdido Carteira']
+};
+
+const stages = [...new Set(State.getRaw().deals.map(Deal.stage).filter(Boolean))]
+  .filter(s => funnelStages[funnel].includes(s));
+
+stageSel.innerHTML = '<option value="all">Todas as Etapas</option>' +
+  stages.map(s => `<option value="${Utils.esc(s)}">${Utils.esc(s)}</option>`).join('');
+if (stages.includes(curStage)) stageSel.value = curStage;
 
     // Rebuild seller list
     const allSellers = [...new Set(State.getRaw().deals.map(Deal.seller).filter(Boolean))].sort();
