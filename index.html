@@ -259,10 +259,11 @@ tbody td:first-child{color:var(--text);font-weight:600;}
     </select>
     <input type="date" id="f-date-from" style="display:none" class="filter-select" onchange="Filters.apply()">
     <input type="date" id="f-date-to" style="display:none" class="filter-select" onchange="Filters.apply()">
-    <select class="filter-select" id="f-funnel" onchange="Filters.changeFunnel()">
-  <option value="oportunidades">Funil de Oportunidades</option>
-  <option value="carteira">Carteira de Clientes</option>
-</select>
+    <select class="filter-select" id="f-funnel" onchange="Filters.onFunnelChange()">
+      <option value="ambos">Ambos os Funis</option>
+      <option value="oportunidades">Funil de Oportunidades</option>
+      <option value="carteira">Carteira de Clientes</option>
+    </select>
 <select class="filter-select" id="f-stage" onchange="Filters.apply()">
   <option value="all">Todas as Etapas</option>
 </select>
