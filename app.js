@@ -149,7 +149,7 @@ function computeStats(deals) {
 
   // Conversion = won / (won + lost) — excludes pipeline still in progress
   const closed = stats.wonCount + stats.lostCount;
-  stats.convRate = closed > 0 ? (stats.wonCount / closed * 100) : 0;
+  stats.convRate = stats.total > 0 ? (stats.wonCount / stats.total * 100) : 0;
   stats.avgTicket = stats.wonCount > 0 ? stats.wonRevenue / stats.wonCount : 0;
 
   return stats;
@@ -896,7 +896,7 @@ const Renderer = {
     UI.setDelta('d-won', wonCount > 0 ? 'up' : 'flat', wonCount > 0 ? '↑ bom' : '—');
 
     Utils.setText('v-conv', `${convRate.toFixed(1)}%`);
-    Utils.setText('s-conv', 'ganhos ÷ (ganhos + perdidos)');
+    Utils.setText('s-conv', 'ganhos ÷ total de negócios');
     UI.setDelta('d-conv', convRate >= 30 ? 'up' : convRate >= 15 ? 'flat' : 'down', `${convRate.toFixed(1)}%`);
   },
 
