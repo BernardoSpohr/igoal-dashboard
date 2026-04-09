@@ -394,16 +394,16 @@ const Filters = {
     const sellers = State.getSellers();
     const funnel = Utils.el('f-funnel').value;
     const allowedStages = funnel === 'oportunidades'
-      ? (s) => s.includes('Funil')
+      ? (d) => Deal.stage(d).includes('Funil')
       : funnel === 'carteira'
-        ? (s) => s.includes('Carteira')
+        ? (d) => Deal.stage(d).includes('Carteira') || Deal.isWon(d)
         : null;
 
     const filtered = State.getRaw().deals.filter((d) => {
       const cd = d.created_at ? new Date(d.created_at) : null;
 
       // Funnel
-      if (allowedStages && !allowedStages(Deal.stage(d))) return false;
+      if (allowedStages && !allowedStages(d)) return false;
 
       // Period (mês/ano)
       if (selMonths.length > 0 || selYears.length > 0) {
@@ -455,7 +455,9 @@ const Filters = {
     const stageSel = Utils.el('f-stage');
     const curStage = stageSel.value;
     const allStages = [...new Set(State.getRaw().deals.map(Deal.stage).filter(Boolean))];
-    const stages = allowedStages ? allStages.filter(allowedStages) : allStages;
+    const stages = allowedStages
+      ? allStages.filter(s => funnel === 'carteira' ? s.includes('Carteira') : s.includes('Funil'))
+      : allStages;
     stageSel.innerHTML = '<option value="all">Todas as Etapas</option>' +
       stages.map(s => `<option value="${Utils.esc(s)}">${Utils.esc(s)}</option>`).join('');
     if (stages.includes(curStage)) stageSel.value = curStage;
@@ -483,11 +485,11 @@ const Filters = {
 
   clear() {
     State.setMonths([]);
-    State.setYears([]);
+    State.setYears([2026]);
     Utils.el('month-all').checked = true;
-    Utils.el('year-all').checked  = true;
+    Utils.el('year-all').checked  = false;
     document.querySelectorAll('#month-list input').forEach(cb => { cb.checked = false; });
-    document.querySelectorAll('#year-list input').forEach(cb => { cb.checked = false; });
+    document.querySelectorAll('#year-list input').forEach(cb => { cb.checked = cb.value === '2026'; });
     this._updateMonthBtn();
     this._updateYearBtn();
     Utils.el('f-funnel').value = 'ambos';
@@ -1060,6 +1062,13 @@ const UI = {
 ════════════════════════════════════════════ */
 window.addEventListener('DOMContentLoaded', () => {
   Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
+
+  // Pré-seleciona 2026
+  State.setYears([2026]);
+  const cb2026 = document.querySelector('#year-list input[value="2026"]');
+  if (cb2026) cb2026.checked = true;
+  Utils.el('year-all').checked = false;
+  Filters._updateYearBtn();
 
   Utils.el('btn-login').addEventListener('click', () => Auth.login());
   Utils.el('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') Auth.login(); });
