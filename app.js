@@ -372,7 +372,6 @@ const Filters = {
   },
 
   apply() {
-    const pv     = Utils.el('f-period').value;
     const stage  = Utils.el('f-stage').value;
     const status = Utils.el('f-status').value;
     const fval   = Utils.el('f-value').value;
@@ -495,13 +494,6 @@ const Filters = {
     this.apply();
   },
 
-  onPeriodChange() {
-    const v = Utils.el('f-period').value;
-    Utils.el('f-date-from').style.display = v === 'custom' ? '' : 'none';
-    Utils.el('f-date-to').style.display   = v === 'custom' ? '' : 'none';
-    this.apply();
-  },
-
   onValueChange() {
     const v = Utils.el('f-value').value;
     Utils.el('f-value-min').style.display = v === 'custom' ? '' : 'none';
@@ -609,72 +601,60 @@ const Charts = (() => {
 
     renderLine() {
       const filt = State.getFiltered();
-      const pv   = Utils.el('f-period').value;
+      const selMonth = Utils.el('f-month').value;
+      const selYear  = Utils.el('f-year').value;
       const mode = State.getLineMode();
-      const now  = new Date();
-
-      let days = parseInt(pv) || 30;
-      let periodStart = new Date(now);
-
-      if (pv === 'custom') {
-        const fv = Utils.el('f-date-from').value;
-        const tv = Utils.el('f-date-to').value;
-        const ps = fv ? new Date(fv) : new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const pe = tv ? new Date(tv + 'T23:59:59') : now;
-        days = Math.round((pe - ps) / 864e5);
-        periodStart = new Date(ps);
-      } else if (pv === '9999') {
-        const timestamps = filt.filter(d => d.created_at).map(d => +new Date(d.created_at));
-        periodStart = timestamps.length
-          ? new Date(Math.min(...timestamps))
-          : new Date(now.getFullYear() - 1, now.getMonth(), 1);
-        days = Math.round((now - periodStart) / 864e5);
-      } else {
-        periodStart.setDate(periodStart.getDate() - days);
-      }
-
-      const gran = days <= 31 ? 'day' : days <= 90 ? 'week' : 'month';
-      const granLabels = { day: 'Visão diária', week: 'Visão semanal', month: 'Visão mensal' };
-      Utils.setText('line-sub', granLabels[gran] + ' do período');
-
       const amtFn = mode === 'value'
         ? (arr) => arr.reduce((s, x) => s + Deal.amount(x), 0)
         : (arr) => arr.length;
-
+      const MS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
       const labels = [], vals = [];
 
-      if (gran === 'day') {
-        for (let i = days; i >= 0; i--) {
-          const d = new Date(now);
-          d.setDate(d.getDate() - i);
-          const dStr = d.toDateString();
-          labels.push(d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }));
-          vals.push(amtFn(filt.filter(x => x.created_at && new Date(x.created_at).toDateString() === dStr)));
-        }
-      } else if (gran === 'week') {
-        const nw = Math.ceil(days / 7) + 1;
-        for (let i = nw - 1; i >= 0; i--) {
-          const we = new Date(now); we.setDate(we.getDate() - i * 7);
-          const ws = new Date(we); ws.setDate(ws.getDate() - 6);
-          if (ws < periodStart) ws.setTime(periodStart.getTime());
-          labels.push(ws.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }));
-          const wsT = ws.getTime(), weT = we.getTime();
-          vals.push(amtFn(filt.filter(x => {
-            if (!x.created_at) return false;
-            const t = +new Date(x.created_at);
-            return t >= wsT && t <= weT;
-          })));
-        }
-      } else {
-        const nm = Math.min(Math.max(Math.ceil(days / 30), 2), 24);
-        for (let i = nm - 1; i >= 0; i--) {
-          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          const mo = d.getMonth(), yr = d.getFullYear();
-          labels.push(d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }));
+      if (selMonth !== 'all' && selYear !== 'all') {
+        // Dias do mês/ano específico
+        Utils.setText('line-sub', 'Visão diária do mês');
+        const yr = parseInt(selYear), mo = parseInt(selMonth) - 1;
+        const days = new Date(yr, mo + 1, 0).getDate();
+        for (let i = 1; i <= days; i++) {
+          labels.push(String(i).padStart(2,'0'));
           vals.push(amtFn(filt.filter(x => {
             if (!x.created_at) return false;
             const cd = new Date(x.created_at);
-            return cd.getMonth() === mo && cd.getFullYear() === yr;
+            return cd.getFullYear() === yr && cd.getMonth() === mo && cd.getDate() === i;
+          })));
+        }
+      } else if (selYear !== 'all') {
+        // Meses do ano específico
+        Utils.setText('line-sub', 'Visão mensal do ano');
+        const yr = parseInt(selYear);
+        for (let m = 0; m < 12; m++) {
+          labels.push(MS[m]);
+          vals.push(amtFn(filt.filter(x => {
+            if (!x.created_at) return false;
+            const cd = new Date(x.created_at);
+            return cd.getFullYear() === yr && cd.getMonth() === m;
+          })));
+        }
+      } else if (selMonth !== 'all') {
+        // Mês específico por ano (2021-2026)
+        Utils.setText('line-sub', 'Comparativo anual do mês');
+        const mo = parseInt(selMonth) - 1;
+        for (let yr = 2021; yr <= 2026; yr++) {
+          labels.push(String(yr));
+          vals.push(amtFn(filt.filter(x => {
+            if (!x.created_at) return false;
+            const cd = new Date(x.created_at);
+            return cd.getFullYear() === yr && cd.getMonth() === mo;
+          })));
+        }
+      } else {
+        // Tudo — por ano
+        Utils.setText('line-sub', 'Visão anual');
+        for (let yr = 2021; yr <= 2026; yr++) {
+          labels.push(String(yr));
+          vals.push(amtFn(filt.filter(x => {
+            if (!x.created_at) return false;
+            return new Date(x.created_at).getFullYear() === yr;
           })));
         }
       }
@@ -712,71 +692,58 @@ const Charts = (() => {
       });
     },
 
-    renderRevenue(filt, pv) {
-      // Revenue uses closed_at (financial close), grouped by same granularity as line chart
-      const now = new Date();
-      let days = parseInt(pv) || 30;
-      let periodStart = new Date(now);
-
-      if (pv === 'custom') {
-        const fv = Utils.el('f-date-from').value;
-        const tv = Utils.el('f-date-to').value;
-        const ps = fv ? new Date(fv) : new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const pe = tv ? new Date(tv + 'T23:59:59') : now;
-        days = Math.round((pe - ps) / 864e5);
-        periodStart = new Date(ps);
-      } else if (pv === '9999') {
-        const timestamps = filt.filter(d => Deal.revenueDate(d)).map(d => +new Date(Deal.revenueDate(d)));
-        periodStart = timestamps.length
-          ? new Date(Math.min(...timestamps))
-          : new Date(now.getFullYear() - 1, now.getMonth(), 1);
-        days = Math.round((now - periodStart) / 864e5);
-      } else {
-        periodStart.setDate(periodStart.getDate() - days);
-      }
-
-      const gran = days <= 31 ? 'day' : days <= 90 ? 'week' : 'month';
-      const granLabels = { day: 'Visão diária', week: 'Visão semanal', month: 'Visão mensal' };
-      Utils.setText('rev-sub', granLabels[gran] + ' — receita por data de fechamento');
-
+    renderRevenue(filt) {
+      const selMonth = Utils.el('f-month').value;
+      const selYear  = Utils.el('f-year').value;
+      const MS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
       const wonDeals = filt.filter(Deal.isWon);
       const labels = [], vals = [];
 
-      if (gran === 'day') {
-        for (let i = days; i >= 0; i--) {
-          const d = new Date(now); d.setDate(d.getDate() - i);
-          const dStr = d.toDateString();
-          labels.push(d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }));
-          vals.push(wonDeals.filter(x => {
-            const rd = Deal.revenueDate(x);
-            return rd && new Date(rd).toDateString() === dStr;
-          }).reduce((s, x) => s + Deal.amount(x), 0));
-        }
-      } else if (gran === 'week') {
-        const nw = Math.ceil(days / 7) + 1;
-        for (let i = nw - 1; i >= 0; i--) {
-          const we = new Date(now); we.setDate(we.getDate() - i * 7);
-          const ws = new Date(we); ws.setDate(ws.getDate() - 6);
-          labels.push(ws.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }));
-          const wsT = ws.getTime(), weT = we.getTime();
-          vals.push(wonDeals.filter(x => {
-            const rd = Deal.revenueDate(x);
-            if (!rd) return false;
-            const t = +new Date(rd);
-            return t >= wsT && t <= weT;
-          }).reduce((s, x) => s + Deal.amount(x), 0));
-        }
-      } else {
-        const nm = Math.min(Math.max(Math.ceil(days / 30), 2), 24);
-        for (let i = nm - 1; i >= 0; i--) {
-          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          const mo = d.getMonth(), yr = d.getFullYear();
-          labels.push(d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }));
+      if (selMonth !== 'all' && selYear !== 'all') {
+        Utils.setText('rev-sub', 'Receita diária do mês');
+        const yr = parseInt(selYear), mo = parseInt(selMonth) - 1;
+        const days = new Date(yr, mo + 1, 0).getDate();
+        for (let i = 1; i <= days; i++) {
+          labels.push(String(i).padStart(2,'0'));
           vals.push(wonDeals.filter(x => {
             const rd = Deal.revenueDate(x);
             if (!rd) return false;
             const cd = new Date(rd);
-            return cd.getMonth() === mo && cd.getFullYear() === yr;
+            return cd.getFullYear() === yr && cd.getMonth() === mo && cd.getDate() === i;
+          }).reduce((s, x) => s + Deal.amount(x), 0));
+        }
+      } else if (selYear !== 'all') {
+        Utils.setText('rev-sub', 'Receita mensal do ano');
+        const yr = parseInt(selYear);
+        for (let m = 0; m < 12; m++) {
+          labels.push(MS[m]);
+          vals.push(wonDeals.filter(x => {
+            const rd = Deal.revenueDate(x);
+            if (!rd) return false;
+            const cd = new Date(rd);
+            return cd.getFullYear() === yr && cd.getMonth() === m;
+          }).reduce((s, x) => s + Deal.amount(x), 0));
+        }
+      } else if (selMonth !== 'all') {
+        Utils.setText('rev-sub', 'Receita anual do mês');
+        const mo = parseInt(selMonth) - 1;
+        for (let yr = 2021; yr <= 2026; yr++) {
+          labels.push(String(yr));
+          vals.push(wonDeals.filter(x => {
+            const rd = Deal.revenueDate(x);
+            if (!rd) return false;
+            const cd = new Date(rd);
+            return cd.getFullYear() === yr && cd.getMonth() === mo;
+          }).reduce((s, x) => s + Deal.amount(x), 0));
+        }
+      } else {
+        Utils.setText('rev-sub', 'Receita anual');
+        for (let yr = 2021; yr <= 2026; yr++) {
+          labels.push(String(yr));
+          vals.push(wonDeals.filter(x => {
+            const rd = Deal.revenueDate(x);
+            if (!rd) return false;
+            return new Date(rd).getFullYear() === yr;
           }).reduce((s, x) => s + Deal.amount(x), 0));
         }
       }
@@ -848,13 +815,12 @@ const Renderer = {
   renderAll() {
     const filt = State.getFiltered();
     const stats = computeStats(filt);
-    const pv = Utils.el('f-period').value;
 
     this._renderKPIs(stats);
     Charts.renderDonut('donutChart',  'donut',  stats);
     Charts.renderDonut('donutChartM', 'donutM', stats);
     Charts.renderLine();
-    Charts.renderRevenue(filt, pv);
+    Charts.renderRevenue(filt);
     Charts.renderStage(stats.stageMap);
     Charts.renderOriginRev(stats.sourceRevMap);
     this._renderFunnel(stats.stageMap);
