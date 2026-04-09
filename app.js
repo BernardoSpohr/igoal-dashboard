@@ -397,19 +397,20 @@ const Filters = {
       vmax = parseFloat(Utils.el('f-value-max').value) || Infinity;
     }
 
-    const FUNNEL_STAGES = {
-      oportunidades: ['Lead Carteira','Faturado Funil','PoC/Demo Funil','StandBy Carteira','Carteira','Qualificado Carteira','Negociação Carteira','Vendido Funil','Perdido Carteira','Perdido Funil','StandBy Funil','Qualificado Funil','Proposta Funil'],
-      carteira: ['Lead Carteira','StandBy Carteira','Carteira','Qualificado Carteira','Negociação Carteira','Perdido Carteira'],
-    };
     const sellers = State.getSellers();
     const funnel = Utils.el('f-funnel').value;
-    const allowedStages = (funnel && funnel !== 'ambos') ? (FUNNEL_STAGES[funnel] || null) : null;
+    // Estágios identificados pelo sufixo no nome
+    const allowedStages = funnel === 'oportunidades'
+      ? (s) => s.includes('Funil')
+      : funnel === 'carteira'
+        ? (s) => s.includes('Carteira')
+        : null;
 
     const filtered = State.getRaw().deals.filter((d) => {
       const cd = d.created_at ? new Date(d.created_at) : null;
 
       // Funnel
-      if (allowedStages && !allowedStages.includes(Deal.stage(d))) return false;
+      if (allowedStages && !allowedStages(Deal.stage(d))) return false;
 
       // Period
       if (pv === 'custom') {
@@ -468,7 +469,7 @@ const Filters = {
     const stageSel = Utils.el('f-stage');
     const curStage = stageSel.value;
     const allStages = [...new Set(State.getRaw().deals.map(Deal.stage).filter(Boolean))];
-    const stages = allowedStages ? allStages.filter(s => allowedStages.includes(s)) : allStages;
+    const stages = allowedStages ? allStages.filter(allowedStages) : allStages;
     stageSel.innerHTML = '<option value="all">Todas as Etapas</option>' +
       stages.map(s => `<option value="${Utils.esc(s)}">${Utils.esc(s)}</option>`).join('');
     if (stages.includes(curStage)) stageSel.value = curStage;
