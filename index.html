@@ -521,6 +521,50 @@ tbody td:first-child{color:var(--text);font-weight:600;}
     <button class="cmp-close-btn" onclick="Comparison.close()">✕ Fechar</button>
   </nav>
 
+  <div class="filter-bar" style="flex-shrink:0">
+    <span class="filter-label">Filtros</span>
+    <select class="filter-select" id="cmp-f-funnel" onchange="Comparison.onFunnelChange()">
+      <option value="ambos">Ambos os Funis</option>
+      <option value="oportunidades">Funil de Oportunidades</option>
+      <option value="carteira">Carteira de Clientes</option>
+    </select>
+    <select class="filter-select" id="cmp-f-stage" onchange="Comparison.render()">
+      <option value="all">Todas as Etapas</option>
+    </select>
+    <select class="filter-select" id="cmp-f-status" onchange="Comparison.render()">
+      <option value="all">Todos os Status</option>
+      <option value="open">Abertos</option>
+      <option value="won">Ganhos</option>
+      <option value="lost">Perdidos</option>
+    </select>
+    <select class="filter-select" id="cmp-f-value" onchange="Comparison.onValueChange()">
+      <option value="all">Qualquer valor</option>
+      <option value="0-1000">Até R$ 1K</option>
+      <option value="1000-10000">R$ 1K – 10K</option>
+      <option value="10000-50000">R$ 10K – 50K</option>
+      <option value="50000-200000">R$ 50K – 200K</option>
+      <option value="200000+">Acima de R$ 200K</option>
+      <option value="custom">Personalizado...</option>
+    </select>
+    <input type="number" id="cmp-f-value-min" placeholder="Min R$" style="display:none;width:90px" class="filter-select" oninput="Comparison.render()">
+    <input type="number" id="cmp-f-value-max" placeholder="Max R$" style="display:none;width:90px" class="filter-select" oninput="Comparison.render()">
+    <select class="filter-select" id="cmp-f-rating" onchange="Comparison.render()">
+      <option value="all">Qualquer estrela</option>
+      <option value="1">★ 1</option><option value="2">★★ 2</option>
+      <option value="3">★★★ 3</option><option value="4">★★★★ 4</option>
+      <option value="5">★★★★★ 5</option>
+    </select>
+    <div style="position:relative;display:inline-block">
+      <button class="filter-select" id="cmp-f-seller-btn" onclick="Comparison.toggleSellerMenu(event)" style="cursor:pointer;min-width:160px;text-align:left">Todos os Vendedores</button>
+      <div id="cmp-f-seller-menu" style="display:none;position:absolute;top:100%;left:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px;z-index:400;min-width:200px;max-height:240px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer">
+          <input type="checkbox" id="cmp-seller-all" checked onchange="Comparison.onSellerAll()"> Todos
+        </label>
+        <div id="cmp-seller-list"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="cmp-body">
     <div class="sec-head" style="margin-top:0"><div class="sec-title">KPIs Comparativos</div></div>
     <div class="cmp-kpis" id="cmp-kpis"></div>
@@ -617,6 +661,6 @@ tbody td:first-child{color:var(--text);font-weight:600;}
   </div>
 </div>
 
-<script src="app.js?v=12"></script>
+<script src="app.js?v=13"></script>
 </body>
 </html>

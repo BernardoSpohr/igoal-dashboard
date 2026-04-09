@@ -605,7 +605,12 @@ const Filters = {
 
 // Close menus on outside click
 document.addEventListener('click', (e) => {
-  [['f-seller-menu','f-seller-btn'],['f-month-menu','f-month-btn'],['f-year-menu','f-year-btn']].forEach(([mid, bid]) => {
+  [
+    ['f-seller-menu','f-seller-btn'],
+    ['f-month-menu','f-month-btn'],
+    ['f-year-menu','f-year-btn'],
+    ['cmp-f-seller-menu','cmp-f-seller-btn'],
+  ].forEach(([mid, bid]) => {
     const m = Utils.el(mid), b = Utils.el(bid);
     if (m && b && !m.contains(e.target) && e.target !== b) m.style.display = 'none';
   });
@@ -1065,6 +1070,7 @@ const Comparison = (() => {
   let _mode = 'deals';
   let _tab  = 'a';
   let _dealsA = [], _dealsB = [];
+  let _sellers = [];
   const MS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const CA = '#2563EB', CB = '#7C3AED';
   const BGA = 'rgba(37,99,235,0.08)', BGB = 'rgba(124,58,237,0.08)';
@@ -1087,6 +1093,63 @@ const Comparison = (() => {
       const cd = new Date(d.created_at);
       return cd.getFullYear() === yr && cd.getMonth() === mo - 1;
     });
+  }
+
+  function _applyFilters(deals) {
+    const funnel = Utils.el('cmp-f-funnel').value;
+    const stage  = Utils.el('cmp-f-stage').value;
+    const status = Utils.el('cmp-f-status').value;
+    const fval   = Utils.el('cmp-f-value').value;
+    const rating = Utils.el('cmp-f-rating').value;
+    let vmin = null, vmax = null;
+    if (fval === 'custom') {
+      vmin = parseFloat(Utils.el('cmp-f-value-min').value) || 0;
+      vmax = parseFloat(Utils.el('cmp-f-value-max').value) || Infinity;
+    }
+    const allowedStages = funnel === 'oportunidades'
+      ? (d) => Deal.stage(d).includes('Funil')
+      : funnel === 'carteira'
+        ? (d) => Deal.stage(d).includes('Carteira') || Deal.isWon(d)
+        : null;
+
+    return deals.filter(d => {
+      if (allowedStages && !allowedStages(d)) return false;
+      if (stage !== 'all' && Deal.stage(d) !== stage) return false;
+      if (status === 'won'  && !Deal.isWon(d))  return false;
+      if (status === 'lost' && !Deal.isLost(d)) return false;
+      if (status === 'open' && !Deal.isOpen(d)) return false;
+      if (_sellers.length > 0 && !_sellers.includes(Deal.seller(d))) return false;
+      if (rating !== 'all' && String(d.rating) !== rating) return false;
+      if (fval !== 'all') {
+        const amt = Deal.amount(d);
+        if (fval === 'custom')     { if (amt < vmin || amt > vmax) return false; }
+        else if (fval === '200000+') { if (amt < 200000) return false; }
+        else { const [lo, hi] = fval.split('-').map(Number); if (amt < lo || amt >= hi) return false; }
+      }
+      return true;
+    });
+  }
+
+  function _buildSellerList(sellers) {
+    Utils.el('cmp-seller-list').innerHTML = sellers.map(s =>
+      `<label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer">
+        <input type="checkbox" value="${Utils.esc(s)}"${_sellers.includes(s) ? ' checked' : ''} onchange="Comparison.onSellerCheck()"> ${Utils.esc(s)}
+      </label>`
+    ).join('');
+  }
+
+  function _rebuildStageDropdown(rawA, rawB) {
+    const funnel = Utils.el('cmp-f-funnel').value;
+    const allDeals = rawA.concat(rawB);
+    const allStages = [...new Set(allDeals.map(Deal.stage).filter(Boolean))];
+    const stages = funnel === 'oportunidades' ? allStages.filter(s => s.includes('Funil'))
+      : funnel === 'carteira' ? allStages.filter(s => s.includes('Carteira'))
+      : allStages;
+    const sel = Utils.el('cmp-f-stage');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="all">Todas as Etapas</option>' +
+      stages.map(s => `<option value="${Utils.esc(s)}">${Utils.esc(s)}</option>`).join('');
+    if (stages.includes(cur)) sel.value = cur;
   }
 
   function _dailySeries(deals, daysInMonth, valueFn) {
@@ -1278,14 +1341,55 @@ const Comparison = (() => {
       _renderTable(tab === 'a' ? _dealsA : _dealsB);
     },
 
+    onFunnelChange() {
+      Utils.el('cmp-f-stage').value = 'all';
+      this.render();
+    },
+
+    onValueChange() {
+      const v = Utils.el('cmp-f-value').value;
+      Utils.el('cmp-f-value-min').style.display = v === 'custom' ? '' : 'none';
+      Utils.el('cmp-f-value-max').style.display = v === 'custom' ? '' : 'none';
+      this.render();
+    },
+
+    toggleSellerMenu(e) {
+      e.stopPropagation();
+      const m = Utils.el('cmp-f-seller-menu');
+      m.style.display = m.style.display === 'none' ? '' : 'none';
+    },
+
+    onSellerAll() {
+      _sellers = [];
+      document.querySelectorAll('#cmp-seller-list input').forEach(cb => { cb.checked = Utils.el('cmp-seller-all').checked; });
+      Utils.setText('cmp-f-seller-btn', 'Todos os Vendedores');
+      this.render();
+    },
+
+    onSellerCheck() {
+      _sellers = [];
+      document.querySelectorAll('#cmp-seller-list input:checked').forEach(cb => _sellers.push(cb.value));
+      Utils.el('cmp-seller-all').checked = _sellers.length === 0;
+      Utils.setText('cmp-f-seller-btn', _sellers.length === 0 ? 'Todos os Vendedores' : `${_sellers.length} vendedor(es)`);
+      this.render();
+    },
+
     render() {
       const yrA = parseInt(Utils.el('cmp-year-a').value);
       const moA = parseInt(Utils.el('cmp-month-a').value);
       const yrB = parseInt(Utils.el('cmp-year-b').value);
       const moB = parseInt(Utils.el('cmp-month-b').value);
 
-      _dealsA = _dealsForMonth(yrA, moA);
-      _dealsB = _dealsForMonth(yrB, moB);
+      const rawA = _dealsForMonth(yrA, moA);
+      const rawB = _dealsForMonth(yrB, moB);
+
+      _rebuildStageDropdown(rawA, rawB);
+
+      const allSellers = [...new Set(rawA.concat(rawB).map(Deal.seller).filter(Boolean))].sort();
+      _buildSellerList(allSellers);
+
+      _dealsA = _applyFilters(rawA);
+      _dealsB = _applyFilters(rawB);
 
       const daysA = new Date(yrA, moA, 0).getDate();
       const daysB = new Date(yrB, moB, 0).getDate();
