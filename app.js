@@ -1058,12 +1058,28 @@ const UI = {
 };
 
 /* ════════════════════════════════════════════
-   COMPARISON  (side panel — compare 2 months)
+   COMPARISON  (full-screen — compare 2 months)
 ════════════════════════════════════════════ */
 const Comparison = (() => {
-  let _lineChart = null;
-  let _revChart  = null;
+  const _charts = {};
+  let _mode = 'deals';
+  let _tab  = 'a';
+  let _dealsA = [], _dealsB = [];
   const MS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const CA = '#2563EB', CB = '#7C3AED';
+  const BGA = 'rgba(37,99,235,0.08)', BGB = 'rgba(124,58,237,0.08)';
+  const XS = { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#9CA3AF', font: { size: 10 }, maxTicksLimit: 16 } };
+  const YS = { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#9CA3AF', font: { size: 10 } }, beginAtZero: true };
+
+  function _uc(key, ctx, cfg) {
+    if (_charts[key]) {
+      _charts[key].data = cfg.data;
+      if (cfg.options) _charts[key].options = cfg.options;
+      _charts[key].update('none');
+      return _charts[key];
+    }
+    return (_charts[key] = new Chart(ctx, cfg));
+  }
 
   function _dealsForMonth(yr, mo) {
     return State.getRaw().deals.filter(d => {
@@ -1073,26 +1089,167 @@ const Comparison = (() => {
     });
   }
 
-  function _dailySeries(deals, yr, mo, fn) {
-    const days = new Date(yr, mo, 0).getDate();
-    const out = [];
-    for (let i = 1; i <= days; i++) {
-      out.push(fn(deals.filter(d => new Date(d.created_at).getDate() === i)));
-    }
-    return out;
+  function _dailySeries(deals, daysInMonth, valueFn) {
+    return Array.from({ length: daysInMonth }, (_, i) => {
+      const day = i + 1;
+      return valueFn(deals.filter(d => new Date(d.created_at).getDate() === day));
+    });
   }
 
-  function _upsertCmp(key, ref, ctx, config) {
-    if (ref) {
-      ref.data.labels          = config.data.labels;
-      ref.data.datasets[0].data  = config.data.datasets[0].data;
-      ref.data.datasets[0].label = config.data.datasets[0].label;
-      ref.data.datasets[1].data  = config.data.datasets[1].data;
-      ref.data.datasets[1].label = config.data.datasets[1].label;
-      ref.update();
-      return ref;
+  function _renderKPIs(sA, sB, lblA, lblB) {
+    const kpis = [
+      { label: 'Negócios',      a: sA.total,       b: sB.total },
+      { label: 'Ganhos',        a: sA.wonCount,     b: sB.wonCount },
+      { label: 'Abertos',       a: sA.openCount,    b: sB.openCount },
+      { label: 'Perdidos',      a: sA.lostCount,    b: sB.lostCount },
+      { label: 'Conversão',     a: sA.convRate.toFixed(1) + '%',           b: sB.convRate.toFixed(1) + '%' },
+      { label: 'Receita Ganha', a: 'R$ ' + Utils.fmtCurrency(sA.wonRevenue), b: 'R$ ' + Utils.fmtCurrency(sB.wonRevenue) },
+      { label: 'Ticket Médio',  a: 'R$ ' + Utils.fmtCurrency(sA.avgTicket),  b: 'R$ ' + Utils.fmtCurrency(sB.avgTicket) },
+      { label: 'Em Aberto R$',  a: 'R$ ' + Utils.fmtCurrency(sA.openRevenue), b: 'R$ ' + Utils.fmtCurrency(sB.openRevenue) },
+    ];
+    Utils.el('cmp-kpis').innerHTML = kpis.map(k => `
+      <div class="cmp-kpi">
+        <div class="cmp-kpi-label">${k.label}</div>
+        <div class="cmp-kpi-vals">
+          <div class="cmp-kpi-val a"><div class="cmp-kpi-num">${k.a}</div><div class="cmp-kpi-sublbl">${lblA}</div></div>
+          <div class="cmp-kpi-val b"><div class="cmp-kpi-num">${k.b}</div><div class="cmp-kpi-sublbl">${lblB}</div></div>
+        </div>
+      </div>`).join('');
+  }
+
+  function _renderLine(dealsA, dealsB, daysA, daysB, lblA, lblB) {
+    const maxDays = Math.max(daysA, daysB);
+    const labels  = Array.from({ length: maxDays }, (_, i) => String(i + 1).padStart(2, '0'));
+    const amtFn   = _mode === 'value' ? arr => arr.reduce((s, x) => s + Deal.amount(x), 0) : arr => arr.length;
+    const vA = _dailySeries(dealsA, daysA, amtFn).concat(Array(maxDays - daysA).fill(null));
+    const vB = _dailySeries(dealsB, daysB, amtFn).concat(Array(maxDays - daysB).fill(null));
+    const isVal = _mode === 'value';
+    _uc('line', Utils.el('cmpLineChart').getContext('2d'), {
+      type: 'line',
+      data: { labels, datasets: [
+        { label: lblA, data: vA, borderColor: CA, backgroundColor: BGA, fill: true, tension: 0.35, pointRadius: 2, borderWidth: 2 },
+        { label: lblB, data: vB, borderColor: CB, backgroundColor: BGB, fill: true, tension: 0.35, pointRadius: 2, borderWidth: 2 },
+      ]},
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#374151', font: { size: 11 }, padding: 14 } },
+          tooltip: isVal ? { callbacks: { label: c => ` R$ ${Utils.fmtCurrency(c.parsed.y)}` } } : {},
+        },
+        scales: {
+          x: XS,
+          y: isVal ? { ...YS, ticks: { ...YS.ticks, callback: v => 'R$' + Utils.fmtCurrency(v) } } : YS,
+        },
+      },
+    });
+  }
+
+  function _renderRev(dealsA, dealsB, daysA, daysB, lblA, lblB) {
+    const maxDays = Math.max(daysA, daysB);
+    const labels  = Array.from({ length: maxDays }, (_, i) => String(i + 1).padStart(2, '0'));
+    const revFn   = arr => arr.filter(Deal.isWon).reduce((s, x) => s + Deal.amount(x), 0);
+    const vA = _dailySeries(dealsA, daysA, revFn).concat(Array(maxDays - daysA).fill(null));
+    const vB = _dailySeries(dealsB, daysB, revFn).concat(Array(maxDays - daysB).fill(null));
+    _uc('rev', Utils.el('cmpRevChart').getContext('2d'), {
+      type: 'line',
+      data: { labels, datasets: [
+        { label: lblA, data: vA, borderColor: CA, backgroundColor: BGA, fill: true, tension: 0.35, pointRadius: 2, borderWidth: 2 },
+        { label: lblB, data: vB, borderColor: CB, backgroundColor: BGB, fill: true, tension: 0.35, pointRadius: 2, borderWidth: 2 },
+      ]},
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` R$ ${Utils.fmtCurrency(c.parsed.y)}` } } },
+        scales: { x: XS, y: { ...YS, ticks: { ...YS.ticks, callback: v => 'R$' + Utils.fmtCurrency(v) } } },
+      },
+    });
+  }
+
+  function _renderDonut(key, canvasId, stats) {
+    const { openCount: o, wonCount: w, lostCount: l } = stats;
+    _uc(key, Utils.el(canvasId).getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: [`Abertos (${o})`, `Ganhos (${w})`, `Perdidos (${l})`],
+        datasets: [{ data: [o, w, l], backgroundColor: ['#2563EB','#059669','#DC2626'], borderWidth: 0, hoverOffset: 5 }],
+      },
+      options: {
+        cutout: '72%', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { color: '#374151', font: { size: 11 }, padding: 14 } } },
+      },
+    });
+  }
+
+  function _renderStage(key, canvasId, stageMap, color) {
+    const entries = Object.entries(stageMap).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    _uc(key, Utils.el(canvasId).getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: entries.map(e => e[0]),
+        datasets: [{ data: entries.map(e => e[1]), backgroundColor: color, borderRadius: 4 }],
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#9CA3AF', font: { size: 10 } }, beginAtZero: true },
+          y: { grid: { display: false }, ticks: { color: '#374151', font: { size: 11 } } },
+        },
+      },
+    });
+  }
+
+  function _renderFunnel(wrapId, stageMap) {
+    const sorted = Object.entries(stageMap).sort((a, b) => b[1] - a[1]);
+    const wrap = Utils.el(wrapId);
+    if (!sorted.length) { wrap.innerHTML = '<div class="empty"><div class="ei">📊</div><p>Sem dados</p></div>'; return; }
+    const max = sorted[0][1];
+    wrap.innerHTML = sorted.map(([name, count], i) => {
+      const pct   = ((count / max) * 100).toFixed(0);
+      const conv  = i > 0 ? ((count / sorted[i - 1][1]) * 100).toFixed(0) : '100';
+      const color = CONFIG.CHART_COLORS[i % CONFIG.CHART_COLORS.length];
+      return `<div class="funnel-step">
+        <div class="f-top"><div class="f-name">${Utils.esc(name)}</div>
+        <div class="f-meta"><span class="f-count">${count}</span><span class="f-pct">${pct}%</span></div></div>
+        <div class="f-bg"><div class="f-fill" style="width:${pct}%;background:${color}"></div></div>
+        ${i > 0 ? `<div class="f-conv">Conversão da etapa anterior: <span>${conv}%</span></div>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  function _renderOrigins(wrapId, sourceMap, total) {
+    const sorted = Object.entries(sourceMap).sort((a, b) => b[1] - a[1]).slice(0, 7);
+    const wrap = Utils.el(wrapId);
+    if (!sorted.length) { wrap.innerHTML = '<div class="empty"><div class="ei">🔍</div><p>Sem dados</p></div>'; return; }
+    const safe = total || 1;
+    wrap.innerHTML = sorted.map(([name, count]) => {
+      const pct = ((count / safe) * 100).toFixed(0);
+      return `<div class="origin-item">
+        <div class="origin-row"><span class="origin-name">${Utils.esc(name)}</span>
+        <span class="origin-val">${count} <span style="color:#9CA3AF;font-weight:400">(${pct}%)</span></span></div>
+        <div class="o-bg"><div class="o-fill" style="width:${pct}%"></div></div>
+      </div>`;
+    }).join('');
+  }
+
+  function _renderTable(deals) {
+    const tbody = Utils.el('cmp-deals-body');
+    if (!deals.length) {
+      tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="ei">💼</div><p>Nenhum negócio encontrado</p></div></td></tr>';
+      return;
     }
-    return new Chart(ctx, config);
+    tbody.innerHTML = deals.slice(0, 200).map(d => {
+      const isWon = Deal.isWon(d), isLost = Deal.isLost(d);
+      const lbl = isWon ? 'Ganho' : isLost ? 'Perdido' : 'Aberto';
+      const cls = isWon ? 't-won' : isLost ? 't-lost' : 't-open';
+      return `<tr>
+        <td>${Utils.esc(d.name || '—')}</td>
+        <td class="td-mono">R$ ${Utils.fmtCurrency(Deal.amount(d))}</td>
+        <td>${Utils.esc(Deal.stage(d))}</td>
+        <td><span class="tag ${cls}">${lbl}</span></td>
+        <td>${Utils.esc(Deal.seller(d) || '—')}</td>
+        <td class="td-mono">${Utils.fmtDate(d.created_at)}</td>
+      </tr>`;
+    }).join('');
   }
 
   return {
@@ -1107,89 +1264,59 @@ const Comparison = (() => {
       Utils.el('cmp-panel').classList.remove('open');
     },
 
+    setMode(mode, btn) {
+      _mode = mode;
+      document.querySelectorAll('#cmp-pill-vol,#cmp-pill-val').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      this.render();
+    },
+
+    switchTab(tab) {
+      _tab = tab;
+      Utils.el('cmp-tab-a').classList.toggle('active', tab === 'a');
+      Utils.el('cmp-tab-b').classList.toggle('active', tab === 'b');
+      _renderTable(tab === 'a' ? _dealsA : _dealsB);
+    },
+
     render() {
       const yrA = parseInt(Utils.el('cmp-year-a').value);
       const moA = parseInt(Utils.el('cmp-month-a').value);
       const yrB = parseInt(Utils.el('cmp-year-b').value);
       const moB = parseInt(Utils.el('cmp-month-b').value);
 
-      const dealsA = _dealsForMonth(yrA, moA);
-      const dealsB = _dealsForMonth(yrB, moB);
+      _dealsA = _dealsForMonth(yrA, moA);
+      _dealsB = _dealsForMonth(yrB, moB);
 
       const daysA = new Date(yrA, moA, 0).getDate();
       const daysB = new Date(yrB, moB, 0).getDate();
-      const maxDays = Math.max(daysA, daysB);
-      const labels = Array.from({ length: maxDays }, (_, i) => String(i + 1).padStart(2, '0'));
-
-      const volA = [], volB = [], revA = [], revB = [];
-      for (let i = 1; i <= maxDays; i++) {
-        const dA = i <= daysA ? dealsA.filter(d => new Date(d.created_at).getDate() === i) : [];
-        const dB = i <= daysB ? dealsB.filter(d => new Date(d.created_at).getDate() === i) : [];
-        volA.push(dA.length);
-        volB.push(dB.length);
-        revA.push(dA.filter(Deal.isWon).reduce((s, x) => s + Deal.amount(x), 0));
-        revB.push(dB.filter(Deal.isWon).reduce((s, x) => s + Deal.amount(x), 0));
-      }
-
+      const sA = computeStats(_dealsA);
+      const sB = computeStats(_dealsB);
       const lblA = `${MS[moA - 1]}/${yrA}`;
       const lblB = `${MS[moB - 1]}/${yrB}`;
 
-      const BASE = {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#9CA3AF', font: { size: 10 }, maxTicksLimit: 16 } },
-          y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#9CA3AF', font: { size: 10 } }, beginAtZero: true },
-        },
-      };
+      Utils.setText('cmp-donut-a-title',  lblA);
+      Utils.setText('cmp-donut-b-title',  lblB);
+      Utils.setText('cmp-funnel-a-title', `Funil — ${lblA}`);
+      Utils.setText('cmp-funnel-b-title', `Funil — ${lblB}`);
+      Utils.setText('cmp-stage-a-title',  `Etapas — ${lblA}`);
+      Utils.setText('cmp-stage-b-title',  `Etapas — ${lblB}`);
+      Utils.setText('cmp-origin-a-title', `Origens — ${lblA}`);
+      Utils.setText('cmp-origin-b-title', `Origens — ${lblB}`);
+      Utils.setText('cmp-tab-a-count', `(${_dealsA.length})`);
+      Utils.setText('cmp-tab-b-count', `(${_dealsB.length})`);
 
-      _lineChart = _upsertCmp('line', _lineChart, Utils.el('cmpLineChart').getContext('2d'), {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [
-            { label: lblA, data: volA, borderColor: '#2563EB', backgroundColor: 'rgba(37,99,235,0.07)', fill: true, tension: 0.35, pointRadius: 2, borderWidth: 2 },
-            { label: lblB, data: volB, borderColor: '#7C3AED', backgroundColor: 'rgba(124,58,237,0.07)', fill: true, tension: 0.35, pointRadius: 2, borderWidth: 2 },
-          ],
-        },
-        options: BASE,
-      });
-
-      _revChart = _upsertCmp('rev', _revChart, Utils.el('cmpRevChart').getContext('2d'), {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [
-            { label: lblA, data: revA, borderColor: '#2563EB', backgroundColor: 'rgba(37,99,235,0.07)', fill: true, tension: 0.35, pointRadius: 2, borderWidth: 2 },
-            { label: lblB, data: revB, borderColor: '#7C3AED', backgroundColor: 'rgba(124,58,237,0.07)', fill: true, tension: 0.35, pointRadius: 2, borderWidth: 2 },
-          ],
-        },
-        options: {
-          ...BASE,
-          plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` R$ ${Utils.fmtCurrency(c.parsed.y)}` } } },
-          scales: {
-            ...BASE.scales,
-            y: { ...BASE.scales.y, ticks: { ...BASE.scales.y.ticks, callback: v => 'R$' + Utils.fmtCurrency(v) } },
-          },
-        },
-      });
-
-      const sA = computeStats(dealsA);
-      const sB = computeStats(dealsB);
-      const kpis = [
-        { label: 'Negócios',      a: sA.total,                          b: sB.total },
-        { label: 'Ganhos',        a: sA.wonCount,                       b: sB.wonCount },
-        { label: 'Conversão',     a: sA.convRate.toFixed(1) + '%',      b: sB.convRate.toFixed(1) + '%' },
-        { label: 'Receita Ganha', a: 'R$ ' + Utils.fmtCurrency(sA.wonRevenue), b: 'R$ ' + Utils.fmtCurrency(sB.wonRevenue) },
-      ];
-      Utils.el('cmp-kpis').innerHTML = kpis.map(k => `
-        <div class="cmp-kpi">
-          <div class="cmp-kpi-label">${k.label}</div>
-          <div class="cmp-kpi-vals">
-            <div class="cmp-kpi-val a"><div class="cmp-kpi-num">${k.a}</div><div class="cmp-kpi-sublbl">${lblA}</div></div>
-            <div class="cmp-kpi-val b"><div class="cmp-kpi-num">${k.b}</div><div class="cmp-kpi-sublbl">${lblB}</div></div>
-          </div>
-        </div>`).join('');
+      _renderKPIs(sA, sB, lblA, lblB);
+      _renderLine(_dealsA, _dealsB, daysA, daysB, lblA, lblB);
+      _renderRev(_dealsA, _dealsB, daysA, daysB, lblA, lblB);
+      _renderDonut('donutA', 'cmpDonutA', sA);
+      _renderDonut('donutB', 'cmpDonutB', sB);
+      _renderStage('stageA', 'cmpStageA', sA.stageMap, CA);
+      _renderStage('stageB', 'cmpStageB', sB.stageMap, CB);
+      _renderFunnel('cmp-funnel-a', sA.stageMap);
+      _renderFunnel('cmp-funnel-b', sB.stageMap);
+      _renderOrigins('cmp-origin-a', sA.sourceMap, sA.total);
+      _renderOrigins('cmp-origin-b', sB.sourceMap, sB.total);
+      _renderTable(_tab === 'a' ? _dealsA : _dealsB);
     },
   };
 })();
