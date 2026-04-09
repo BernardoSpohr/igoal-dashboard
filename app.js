@@ -1161,23 +1161,31 @@ const Comparison = (() => {
 
   function _renderKPIs(sA, sB, lblA, lblB) {
     const kpis = [
-      { label: 'Negócios',      a: sA.total,       b: sB.total },
-      { label: 'Ganhos',        a: sA.wonCount,     b: sB.wonCount },
-      { label: 'Abertos',       a: sA.openCount,    b: sB.openCount },
-      { label: 'Perdidos',      a: sA.lostCount,    b: sB.lostCount },
-      { label: 'Conversão',     a: sA.convRate.toFixed(1) + '%',           b: sB.convRate.toFixed(1) + '%' },
-      { label: 'Receita Ganha', a: 'R$ ' + Utils.fmtCurrency(sA.wonRevenue), b: 'R$ ' + Utils.fmtCurrency(sB.wonRevenue) },
-      { label: 'Ticket Médio',  a: 'R$ ' + Utils.fmtCurrency(sA.avgTicket),  b: 'R$ ' + Utils.fmtCurrency(sB.avgTicket) },
-      { label: 'Em Aberto R$',  a: 'R$ ' + Utils.fmtCurrency(sA.openRevenue), b: 'R$ ' + Utils.fmtCurrency(sB.openRevenue) },
+      { label: 'Negócios',      nA: sA.total,        nB: sB.total,        dA: sA.total,       dB: sB.total },
+      { label: 'Ganhos',        nA: sA.wonCount,      nB: sB.wonCount,     dA: sA.wonCount,    dB: sB.wonCount },
+      { label: 'Abertos',       nA: sA.openCount,     nB: sB.openCount,    dA: sA.openCount,   dB: sB.openCount },
+      { label: 'Perdidos',      nA: sA.lostCount,     nB: sB.lostCount,    dA: sA.lostCount,   dB: sB.lostCount, inv: true },
+      { label: 'Conversão',     nA: sA.convRate,      nB: sB.convRate,     dA: sA.convRate.toFixed(1) + '%',            dB: sB.convRate.toFixed(1) + '%' },
+      { label: 'Receita Ganha', nA: sA.wonRevenue,    nB: sB.wonRevenue,   dA: 'R$ ' + Utils.fmtCurrency(sA.wonRevenue), dB: 'R$ ' + Utils.fmtCurrency(sB.wonRevenue) },
+      { label: 'Ticket Médio',  nA: sA.avgTicket,     nB: sB.avgTicket,    dA: 'R$ ' + Utils.fmtCurrency(sA.avgTicket),  dB: 'R$ ' + Utils.fmtCurrency(sB.avgTicket) },
+      { label: 'Em Aberto R$',  nA: sA.openRevenue,   nB: sB.openRevenue,  dA: 'R$ ' + Utils.fmtCurrency(sA.openRevenue), dB: 'R$ ' + Utils.fmtCurrency(sB.openRevenue) },
     ];
-    Utils.el('cmp-kpis').innerHTML = kpis.map(k => `
-      <div class="cmp-kpi">
+
+    Utils.el('cmp-kpis').innerHTML = kpis.map(k => {
+      const tie = k.nA === k.nB;
+      // inv = true means lower is better (e.g. Perdidos)
+      const aWins = tie ? false : k.inv ? k.nA < k.nB : k.nA > k.nB;
+      const bWins = tie ? false : k.inv ? k.nB < k.nA : k.nB > k.nA;
+      const arrowA = tie ? '' : aWins ? ' <span style="color:var(--success);font-size:14px">↑</span>' : ' <span style="color:var(--danger);font-size:14px">↓</span>';
+      const arrowB = tie ? '' : bWins ? ' <span style="color:var(--success);font-size:14px">↑</span>' : ' <span style="color:var(--danger);font-size:14px">↓</span>';
+      return `<div class="cmp-kpi">
         <div class="cmp-kpi-label">${k.label}</div>
         <div class="cmp-kpi-vals">
-          <div class="cmp-kpi-val a"><div class="cmp-kpi-num">${k.a}</div><div class="cmp-kpi-sublbl">${lblA}</div></div>
-          <div class="cmp-kpi-val b"><div class="cmp-kpi-num">${k.b}</div><div class="cmp-kpi-sublbl">${lblB}</div></div>
+          <div class="cmp-kpi-val a"><div class="cmp-kpi-num">${k.dA}${arrowA}</div><div class="cmp-kpi-sublbl">${lblA}</div></div>
+          <div class="cmp-kpi-val b"><div class="cmp-kpi-num">${k.dB}${arrowB}</div><div class="cmp-kpi-sublbl">${lblB}</div></div>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
 
   function _renderLine(dealsA, dealsB, daysA, daysB, lblA, lblB) {
