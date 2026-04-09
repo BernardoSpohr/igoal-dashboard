@@ -371,11 +371,6 @@ const Filters = {
     this.apply();
   },
 
-  _funnelStages: {
-    oportunidades: ['Lead Carteira','Faturado Funil','PoC/Demo Funil','StandBy Carteira','Carteira','Qualificado Carteira','Negociação Carteira','Vendido Funil','Perdido Carteira','Perdido Funil','StandBy Funil','Qualificado Funil','Proposta Funil'],
-    carteira: ['Lead Carteira','StandBy Carteira','Carteira','Qualificado Carteira','Negociação Carteira','Perdido Carteira'],
-  },
-
   apply() {
     const pv     = Utils.el('f-period').value;
     const stage  = Utils.el('f-stage').value;
@@ -402,9 +397,13 @@ const Filters = {
       vmax = parseFloat(Utils.el('f-value-max').value) || Infinity;
     }
 
+    const FUNNEL_STAGES = {
+      oportunidades: ['Lead Carteira','Faturado Funil','PoC/Demo Funil','StandBy Carteira','Carteira','Qualificado Carteira','Negociação Carteira','Vendido Funil','Perdido Carteira','Perdido Funil','StandBy Funil','Qualificado Funil','Proposta Funil'],
+      carteira: ['Lead Carteira','StandBy Carteira','Carteira','Qualificado Carteira','Negociação Carteira','Perdido Carteira'],
+    };
     const sellers = State.getSellers();
     const funnel = Utils.el('f-funnel').value;
-    const allowedStages = funnel !== 'ambos' ? this._funnelStages[funnel] : null;
+    const allowedStages = (funnel && funnel !== 'ambos') ? (FUNNEL_STAGES[funnel] || null) : null;
 
     const filtered = State.getRaw().deals.filter((d) => {
       const cd = d.created_at ? new Date(d.created_at) : null;
