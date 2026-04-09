@@ -486,10 +486,11 @@ const Filters = {
 
   _isActive() {
     return Utils.el('f-period').value !== '30'
-      || Utils.el('f-stage').value  !== 'all'
-      || Utils.el('f-status').value !== 'all'
-      || Utils.el('f-value').value  !== 'all'
-      || Utils.el('f-rating').value !== 'all'
+      || Utils.el('f-funnel').value  !== 'ambos'
+      || Utils.el('f-stage').value   !== 'all'
+      || Utils.el('f-status').value  !== 'all'
+      || Utils.el('f-value').value   !== 'all'
+      || Utils.el('f-rating').value  !== 'all'
       || State.getSellers().length > 0;
   },
 
@@ -499,6 +500,7 @@ const Filters = {
     Utils.el('f-date-to').value = '';
     Utils.el('f-date-from').style.display = 'none';
     Utils.el('f-date-to').style.display = 'none';
+    Utils.el('f-funnel').value = 'ambos';
     Utils.el('f-stage').value = 'all';
     Utils.el('f-status').value = 'all';
     Utils.el('f-value').value = 'all';
