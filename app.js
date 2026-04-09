@@ -25,6 +25,8 @@ const State = (() => {
   let _raw = { deals: [], tasks: [] };
   let _filtered = [];
   let _selectedSellers = [];
+  let _selectedMonths = [];
+  let _selectedYears = [];
   let _lineMode = 'deals';
   let _autoTimer = null;
 
@@ -32,11 +34,15 @@ const State = (() => {
     getRaw: () => _raw,
     getFiltered: () => _filtered,
     getSellers: () => _selectedSellers,
+    getMonths: () => _selectedMonths,
+    getYears: () => _selectedYears,
     getLineMode: () => _lineMode,
 
     setRaw: (deals, tasks) => { _raw.deals = deals; _raw.tasks = tasks; },
     setFiltered: (arr) => { _filtered = arr; },
     setSellers: (arr) => { _selectedSellers = arr; },
+    setMonths: (arr) => { _selectedMonths = arr; },
+    setYears: (arr) => { _selectedYears = arr; },
     setLineMode: (m) => { _lineMode = m; },
 
     startAutoRefresh: (fn) => {
@@ -376,8 +382,8 @@ const Filters = {
     const status = Utils.el('f-status').value;
     const fval   = Utils.el('f-value').value;
     const rating = Utils.el('f-rating').value;
-    const selMonth = Utils.el('f-month').value;
-    const selYear  = Utils.el('f-year').value;
+    const selMonths = State.getMonths();
+    const selYears  = State.getYears();
 
     let vmin = null, vmax = null;
     if (fval === 'custom') {
@@ -400,10 +406,10 @@ const Filters = {
       if (allowedStages && !allowedStages(Deal.stage(d))) return false;
 
       // Period (mês/ano)
-      if (selMonth !== 'all' || selYear !== 'all') {
+      if (selMonths.length > 0 || selYears.length > 0) {
         if (!cd) return false;
-        if (selMonth !== 'all' && (cd.getMonth() + 1) !== parseInt(selMonth)) return false;
-        if (selYear  !== 'all' && cd.getFullYear()    !== parseInt(selYear))  return false;
+        if (selMonths.length > 0 && !selMonths.includes(cd.getMonth() + 1)) return false;
+        if (selYears.length  > 0 && !selYears.includes(cd.getFullYear()))   return false;
       }
 
       // Stage
@@ -437,9 +443,9 @@ const Filters = {
     State.setFiltered(filtered);
 
     // Update period label
-    const MONTHS = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-    const mLabel = selMonth !== 'all' ? MONTHS[parseInt(selMonth)] : 'Todos os meses';
-    const yLabel = selYear  !== 'all' ? selYear : 'Todos os anos';
+    const MONTHS_LABEL = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const mLabel = selMonths.length > 0 ? selMonths.map(m => MONTHS_LABEL[m-1]).join(', ') : 'Todos os meses';
+    const yLabel = selYears.length  > 0 ? selYears.join(', ') : 'Todos os anos';
     Utils.setText('period-display', `${mLabel} · ${yLabel}`);
 
     // Check active state BEFORE rebuilding dropdowns (values are still set)
@@ -465,8 +471,8 @@ const Filters = {
   },
 
   _isActive() {
-    return Utils.el('f-month').value  !== 'all'
-      || Utils.el('f-year').value    !== 'all'
+    return State.getMonths().length > 0
+      || State.getYears().length  > 0
       || Utils.el('f-funnel').value  !== 'ambos'
       || Utils.el('f-stage').value   !== 'all'
       || Utils.el('f-status').value  !== 'all'
@@ -476,8 +482,14 @@ const Filters = {
   },
 
   clear() {
-    Utils.el('f-month').value = 'all';
-    Utils.el('f-year').value  = 'all';
+    State.setMonths([]);
+    State.setYears([]);
+    Utils.el('month-all').checked = true;
+    Utils.el('year-all').checked  = true;
+    document.querySelectorAll('#month-list input').forEach(cb => { cb.checked = false; });
+    document.querySelectorAll('#year-list input').forEach(cb => { cb.checked = false; });
+    this._updateMonthBtn();
+    this._updateYearBtn();
     Utils.el('f-funnel').value = 'ambos';
     Utils.el('f-stage').value = 'all';
     Utils.el('f-status').value = 'all';
@@ -524,6 +536,56 @@ const Filters = {
     this.apply();
   },
 
+  toggleMonthMenu(e) {
+    e.stopPropagation();
+    const m = Utils.el('f-month-menu');
+    m.style.display = m.style.display === 'none' ? '' : 'none';
+  },
+  onMonthAll() {
+    const checked = Utils.el('month-all').checked;
+    State.setMonths([]);
+    document.querySelectorAll('#month-list input').forEach(cb => { cb.checked = checked; });
+    this._updateMonthBtn();
+    this.apply();
+  },
+  onMonthCheck() {
+    const sel = [];
+    document.querySelectorAll('#month-list input:checked').forEach(cb => sel.push(parseInt(cb.value)));
+    State.setMonths(sel);
+    Utils.el('month-all').checked = sel.length === 0;
+    this._updateMonthBtn();
+    this.apply();
+  },
+  _updateMonthBtn() {
+    const n = State.getMonths().length;
+    Utils.setText('f-month-btn', n === 0 ? 'Todos os Meses' : `${n} mês(es)`);
+  },
+
+  toggleYearMenu(e) {
+    e.stopPropagation();
+    const m = Utils.el('f-year-menu');
+    m.style.display = m.style.display === 'none' ? '' : 'none';
+  },
+  onYearAll() {
+    const checked = Utils.el('year-all').checked;
+    State.setYears([]);
+    document.querySelectorAll('#year-list input').forEach(cb => { cb.checked = checked; });
+    this._updateYearBtn();
+    this.apply();
+  },
+  onYearCheck() {
+    const sel = [];
+    document.querySelectorAll('#year-list input:checked').forEach(cb => sel.push(parseInt(cb.value)));
+    State.setYears(sel);
+    Utils.el('year-all').checked = sel.length === 0;
+    this._updateYearBtn();
+    this.apply();
+  },
+  _updateYearBtn() {
+    const n = State.getYears().length;
+    Utils.setText('f-year-btn', n === 0 ? 'Todos os Anos' : `${n} ano(s)`);
+  },
+
   _updateSellerBtn() {
     const n = State.getSellers().length;
     Utils.setText('f-seller-btn', n === 0 ? 'Todos os Vendedores' : `${n} vendedor(es)`);
@@ -539,11 +601,12 @@ const Filters = {
   },
 };
 
-// Close seller menu on outside click
+// Close menus on outside click
 document.addEventListener('click', (e) => {
-  const m = Utils.el('f-seller-menu');
-  const b = Utils.el('f-seller-btn');
-  if (m && b && !m.contains(e.target) && e.target !== b) m.style.display = 'none';
+  [['f-seller-menu','f-seller-btn'],['f-month-menu','f-month-btn'],['f-year-menu','f-year-btn']].forEach(([mid, bid]) => {
+    const m = Utils.el(mid), b = Utils.el(bid);
+    if (m && b && !m.contains(e.target) && e.target !== b) m.style.display = 'none';
+  });
 });
 
 /* ════════════════════════════════════════════
@@ -601,19 +664,20 @@ const Charts = (() => {
 
     renderLine() {
       const filt = State.getFiltered();
-      const selMonth = Utils.el('f-month').value;
-      const selYear  = Utils.el('f-year').value;
+      const selMonths = State.getMonths();
+      const selYears  = State.getYears();
       const mode = State.getLineMode();
       const amtFn = mode === 'value'
         ? (arr) => arr.reduce((s, x) => s + Deal.amount(x), 0)
         : (arr) => arr.length;
       const MS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+      const activeYears = selYears.length > 0 ? selYears : [2021,2022,2023,2024,2025,2026];
       const labels = [], vals = [];
 
-      if (selMonth !== 'all' && selYear !== 'all') {
+      if (selMonths.length === 1 && selYears.length === 1) {
         // Dias do mês/ano específico
         Utils.setText('line-sub', 'Visão diária do mês');
-        const yr = parseInt(selYear), mo = parseInt(selMonth) - 1;
+        const yr = selYears[0], mo = selMonths[0] - 1;
         const days = new Date(yr, mo + 1, 0).getDate();
         for (let i = 1; i <= days; i++) {
           labels.push(String(i).padStart(2,'0'));
@@ -623,10 +687,10 @@ const Charts = (() => {
             return cd.getFullYear() === yr && cd.getMonth() === mo && cd.getDate() === i;
           })));
         }
-      } else if (selYear !== 'all') {
+      } else if (selYears.length === 1) {
         // Meses do ano específico
         Utils.setText('line-sub', 'Visão mensal do ano');
-        const yr = parseInt(selYear);
+        const yr = selYears[0];
         for (let m = 0; m < 12; m++) {
           labels.push(MS[m]);
           vals.push(amtFn(filt.filter(x => {
@@ -635,22 +699,10 @@ const Charts = (() => {
             return cd.getFullYear() === yr && cd.getMonth() === m;
           })));
         }
-      } else if (selMonth !== 'all') {
-        // Mês específico por ano (2021-2026)
-        Utils.setText('line-sub', 'Comparativo anual do mês');
-        const mo = parseInt(selMonth) - 1;
-        for (let yr = 2021; yr <= 2026; yr++) {
-          labels.push(String(yr));
-          vals.push(amtFn(filt.filter(x => {
-            if (!x.created_at) return false;
-            const cd = new Date(x.created_at);
-            return cd.getFullYear() === yr && cd.getMonth() === mo;
-          })));
-        }
       } else {
-        // Tudo — por ano
+        // Por ano
         Utils.setText('line-sub', 'Visão anual');
-        for (let yr = 2021; yr <= 2026; yr++) {
+        for (const yr of activeYears) {
           labels.push(String(yr));
           vals.push(amtFn(filt.filter(x => {
             if (!x.created_at) return false;
@@ -693,15 +745,16 @@ const Charts = (() => {
     },
 
     renderRevenue(filt) {
-      const selMonth = Utils.el('f-month').value;
-      const selYear  = Utils.el('f-year').value;
+      const selMonths = State.getMonths();
+      const selYears  = State.getYears();
       const MS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+      const activeYears = selYears.length > 0 ? selYears : [2021,2022,2023,2024,2025,2026];
       const wonDeals = filt.filter(Deal.isWon);
       const labels = [], vals = [];
 
-      if (selMonth !== 'all' && selYear !== 'all') {
+      if (selMonths.length === 1 && selYears.length === 1) {
         Utils.setText('rev-sub', 'Receita diária do mês');
-        const yr = parseInt(selYear), mo = parseInt(selMonth) - 1;
+        const yr = selYears[0], mo = selMonths[0] - 1;
         const days = new Date(yr, mo + 1, 0).getDate();
         for (let i = 1; i <= days; i++) {
           labels.push(String(i).padStart(2,'0'));
@@ -712,9 +765,9 @@ const Charts = (() => {
             return cd.getFullYear() === yr && cd.getMonth() === mo && cd.getDate() === i;
           }).reduce((s, x) => s + Deal.amount(x), 0));
         }
-      } else if (selYear !== 'all') {
+      } else if (selYears.length === 1) {
         Utils.setText('rev-sub', 'Receita mensal do ano');
-        const yr = parseInt(selYear);
+        const yr = selYears[0];
         for (let m = 0; m < 12; m++) {
           labels.push(MS[m]);
           vals.push(wonDeals.filter(x => {
@@ -724,21 +777,9 @@ const Charts = (() => {
             return cd.getFullYear() === yr && cd.getMonth() === m;
           }).reduce((s, x) => s + Deal.amount(x), 0));
         }
-      } else if (selMonth !== 'all') {
-        Utils.setText('rev-sub', 'Receita anual do mês');
-        const mo = parseInt(selMonth) - 1;
-        for (let yr = 2021; yr <= 2026; yr++) {
-          labels.push(String(yr));
-          vals.push(wonDeals.filter(x => {
-            const rd = Deal.revenueDate(x);
-            if (!rd) return false;
-            const cd = new Date(rd);
-            return cd.getFullYear() === yr && cd.getMonth() === mo;
-          }).reduce((s, x) => s + Deal.amount(x), 0));
-        }
       } else {
         Utils.setText('rev-sub', 'Receita anual');
-        for (let yr = 2021; yr <= 2026; yr++) {
+        for (const yr of activeYears) {
           labels.push(String(yr));
           vals.push(wonDeals.filter(x => {
             const rd = Deal.revenueDate(x);

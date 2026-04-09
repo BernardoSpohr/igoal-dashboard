@@ -248,30 +248,40 @@ tbody td:first-child{color:var(--text);font-weight:600;}
 
   <div class="filter-bar">
     <span class="filter-label">Filtros</span>
-    <select class="filter-select" id="f-month" onchange="Filters.apply()">
-      <option value="all">Todos os Meses</option>
-      <option value="1">Janeiro</option>
-      <option value="2">Fevereiro</option>
-      <option value="3">Março</option>
-      <option value="4">Abril</option>
-      <option value="5">Maio</option>
-      <option value="6">Junho</option>
-      <option value="7">Julho</option>
-      <option value="8">Agosto</option>
-      <option value="9">Setembro</option>
-      <option value="10">Outubro</option>
-      <option value="11">Novembro</option>
-      <option value="12">Dezembro</option>
-    </select>
-    <select class="filter-select" id="f-year" onchange="Filters.apply()">
-      <option value="all">Todos os Anos</option>
-      <option value="2021">2021</option>
-      <option value="2022">2022</option>
-      <option value="2023">2023</option>
-      <option value="2024">2024</option>
-      <option value="2025">2025</option>
-      <option value="2026">2026</option>
-    </select>
+    <div style="position:relative;display:inline-block">
+      <button class="filter-select" id="f-month-btn" onclick="Filters.toggleMonthMenu(event)" style="cursor:pointer;min-width:130px;text-align:left">Todos os Meses</button>
+      <div id="f-month-menu" style="display:none;position:absolute;top:100%;left:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px;z-index:200;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" id="month-all" checked onchange="Filters.onMonthAll()"> Todos</label>
+        <div id="month-list">
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="1" onchange="Filters.onMonthCheck()"> Janeiro</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="2" onchange="Filters.onMonthCheck()"> Fevereiro</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="3" onchange="Filters.onMonthCheck()"> Março</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="4" onchange="Filters.onMonthCheck()"> Abril</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="5" onchange="Filters.onMonthCheck()"> Maio</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="6" onchange="Filters.onMonthCheck()"> Junho</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="7" onchange="Filters.onMonthCheck()"> Julho</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="8" onchange="Filters.onMonthCheck()"> Agosto</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="9" onchange="Filters.onMonthCheck()"> Setembro</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="10" onchange="Filters.onMonthCheck()"> Outubro</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="11" onchange="Filters.onMonthCheck()"> Novembro</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="12" onchange="Filters.onMonthCheck()"> Dezembro</label>
+        </div>
+      </div>
+    </div>
+    <div style="position:relative;display:inline-block">
+      <button class="filter-select" id="f-year-btn" onclick="Filters.toggleYearMenu(event)" style="cursor:pointer;min-width:110px;text-align:left">Todos os Anos</button>
+      <div id="f-year-menu" style="display:none;position:absolute;top:100%;left:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px;z-index:200;min-width:130px;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" id="year-all" checked onchange="Filters.onYearAll()"> Todos</label>
+        <div id="year-list">
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="2021" onchange="Filters.onYearCheck()"> 2021</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="2022" onchange="Filters.onYearCheck()"> 2022</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="2023" onchange="Filters.onYearCheck()"> 2023</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="2024" onchange="Filters.onYearCheck()"> 2024</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="2025" onchange="Filters.onYearCheck()"> 2025</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="2026" onchange="Filters.onYearCheck()"> 2026</label>
+        </div>
+      </div>
+    </div>
     <select class="filter-select" id="f-funnel" onchange="Filters.onFunnelChange()">
       <option value="ambos">Ambos os Funis</option>
       <option value="oportunidades">Funil de Oportunidades</option>
