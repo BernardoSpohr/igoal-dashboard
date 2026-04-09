@@ -248,17 +248,30 @@ tbody td:first-child{color:var(--text);font-weight:600;}
 
   <div class="filter-bar">
     <span class="filter-label">Filtros</span>
-    <select class="filter-select" id="f-period" onchange="Filters.onPeriodChange()">
-      <option value="30">Últimos 30 dias</option>
-      <option value="60">Últimos 60 dias</option>
-      <option value="90">Últimos 90 dias</option>
-      <option value="180">Últimos 6 meses</option>
-      <option value="365">Último ano</option>
-      <option value="9999">Todo o período</option>
-      <option value="custom">Personalizado...</option>
+    <select class="filter-select" id="f-month" onchange="Filters.apply()">
+      <option value="all">Todos os Meses</option>
+      <option value="1">Janeiro</option>
+      <option value="2">Fevereiro</option>
+      <option value="3">Março</option>
+      <option value="4">Abril</option>
+      <option value="5">Maio</option>
+      <option value="6">Junho</option>
+      <option value="7">Julho</option>
+      <option value="8">Agosto</option>
+      <option value="9">Setembro</option>
+      <option value="10">Outubro</option>
+      <option value="11">Novembro</option>
+      <option value="12">Dezembro</option>
     </select>
-    <input type="date" id="f-date-from" style="display:none" class="filter-select" onchange="Filters.apply()">
-    <input type="date" id="f-date-to" style="display:none" class="filter-select" onchange="Filters.apply()">
+    <select class="filter-select" id="f-year" onchange="Filters.apply()">
+      <option value="all">Todos os Anos</option>
+      <option value="2021">2021</option>
+      <option value="2022">2022</option>
+      <option value="2023">2023</option>
+      <option value="2024">2024</option>
+      <option value="2025">2025</option>
+      <option value="2026">2026</option>
+    </select>
     <select class="filter-select" id="f-funnel" onchange="Filters.onFunnelChange()">
       <option value="ambos">Ambos os Funis</option>
       <option value="oportunidades">Funil de Oportunidades</option>

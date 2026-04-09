@@ -377,19 +377,8 @@ const Filters = {
     const status = Utils.el('f-status').value;
     const fval   = Utils.el('f-value').value;
     const rating = Utils.el('f-rating').value;
-    const now    = new Date();
-
-    let periodStart = null, periodEnd = now;
-
-    if (pv === 'custom') {
-      const fv = Utils.el('f-date-from').value;
-      const tv = Utils.el('f-date-to').value;
-      periodStart = fv ? new Date(fv) : null;
-      periodEnd   = tv ? new Date(tv + 'T23:59:59') : now;
-    } else if (pv !== '9999') {
-      periodStart = new Date(now);
-      periodStart.setDate(periodStart.getDate() - parseInt(pv));
-    }
+    const selMonth = Utils.el('f-month').value;
+    const selYear  = Utils.el('f-year').value;
 
     let vmin = null, vmax = null;
     if (fval === 'custom') {
@@ -399,7 +388,6 @@ const Filters = {
 
     const sellers = State.getSellers();
     const funnel = Utils.el('f-funnel').value;
-    // Estágios identificados pelo sufixo no nome
     const allowedStages = funnel === 'oportunidades'
       ? (s) => s.includes('Funil')
       : funnel === 'carteira'
@@ -412,13 +400,11 @@ const Filters = {
       // Funnel
       if (allowedStages && !allowedStages(Deal.stage(d))) return false;
 
-      // Period
-      if (pv === 'custom') {
+      // Period (mês/ano)
+      if (selMonth !== 'all' || selYear !== 'all') {
         if (!cd) return false;
-        if (periodStart && cd < periodStart) return false;
-        if (cd > periodEnd) return false;
-      } else if (pv !== '9999') {
-        if (!cd || cd < periodStart) return false;
+        if (selMonth !== 'all' && (cd.getMonth() + 1) !== parseInt(selMonth)) return false;
+        if (selYear  !== 'all' && cd.getFullYear()    !== parseInt(selYear))  return false;
       }
 
       // Stage
@@ -452,15 +438,10 @@ const Filters = {
     State.setFiltered(filtered);
 
     // Update period label
-    const fmt = (d) => d.toLocaleDateString('pt-BR', { day:'2-digit', month:'short', year:'numeric' });
-    const days = parseInt(pv) || 0;
-    if (pv === 'custom') {
-      Utils.setText('period-display', (periodStart ? fmt(periodStart) : '?') + ' – ' + fmt(periodEnd));
-    } else if (pv === '9999') {
-      Utils.setText('period-display', 'Todo o período');
-    } else {
-      Utils.setText('period-display', fmt(periodStart) + ' – ' + fmt(now));
-    }
+    const MONTHS = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    const mLabel = selMonth !== 'all' ? MONTHS[parseInt(selMonth)] : 'Todos os meses';
+    const yLabel = selYear  !== 'all' ? selYear : 'Todos os anos';
+    Utils.setText('period-display', `${mLabel} · ${yLabel}`);
 
     // Check active state BEFORE rebuilding dropdowns (values are still set)
     const isActive = this._isActive();
@@ -485,7 +466,8 @@ const Filters = {
   },
 
   _isActive() {
-    return Utils.el('f-period').value !== '30'
+    return Utils.el('f-month').value  !== 'all'
+      || Utils.el('f-year').value    !== 'all'
       || Utils.el('f-funnel').value  !== 'ambos'
       || Utils.el('f-stage').value   !== 'all'
       || Utils.el('f-status').value  !== 'all'
@@ -495,11 +477,8 @@ const Filters = {
   },
 
   clear() {
-    Utils.el('f-period').value = '30';
-    Utils.el('f-date-from').value = '';
-    Utils.el('f-date-to').value = '';
-    Utils.el('f-date-from').style.display = 'none';
-    Utils.el('f-date-to').style.display = 'none';
+    Utils.el('f-month').value = 'all';
+    Utils.el('f-year').value  = 'all';
     Utils.el('f-funnel').value = 'ambos';
     Utils.el('f-stage').value = 'all';
     Utils.el('f-status').value = 'all';
