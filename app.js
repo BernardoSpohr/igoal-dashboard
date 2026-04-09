@@ -712,13 +712,10 @@ const Charts = (() => {
       }
 
       const ctx = Utils.el('lineChart').getContext('2d');
-      const maxTicks = gran === 'day' ? 10 : gran === 'week' ? 13 : 12;
 
       if (_charts.line) {
         _charts.line.data.labels = labels;
         _charts.line.data.datasets[0].data = vals;
-        _charts.line.data.datasets[0].pointRadius = gran === 'day' ? 2 : 4;
-        _charts.line.options.scales.x.ticks.maxTicksLimit = maxTicks;
         _charts.line.update();
         return;
       }
@@ -730,14 +727,14 @@ const Charts = (() => {
           datasets: [{
             data: vals, borderColor: '#2563EB', backgroundColor: _gradient(ctx),
             fill: true, tension: 0.35, pointBackgroundColor: '#2563EB',
-            pointRadius: gran === 'day' ? 2 : 4, borderWidth: 2,
+            pointRadius: 3, borderWidth: 2,
           }],
         },
         options: {
           responsive: true, maintainAspectRatio: false,
           plugins: { legend: { display: false } },
           scales: {
-            x: { ...BASE_SCALES.x, ticks: { ...BASE_SCALES.x.ticks, maxTicksLimit: maxTicks, maxRotation: 45 } },
+            x: { ...BASE_SCALES.x, ticks: { ...BASE_SCALES.x.ticks, maxTicksLimit: 12, maxRotation: 45 } },
             y: BASE_SCALES.y,
           },
         },
