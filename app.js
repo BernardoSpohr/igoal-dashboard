@@ -418,7 +418,7 @@ const Filters = {
         if (periodStart && cd < periodStart) return false;
         if (cd > periodEnd) return false;
       } else if (pv !== '9999') {
-        if (cd && cd < periodStart) return false;
+        if (!cd || cd < periodStart) return false;
       }
 
       // Stage
