@@ -1341,6 +1341,23 @@ const Comparison = (() => {
       _renderTable(tab === 'a' ? _dealsA : _dealsB);
     },
 
+    clearFilters() {
+      Utils.el('cmp-f-funnel').value = 'ambos';
+      Utils.el('cmp-f-stage').value  = 'all';
+      Utils.el('cmp-f-status').value = 'all';
+      Utils.el('cmp-f-value').value  = 'all';
+      Utils.el('cmp-f-value-min').value = '';
+      Utils.el('cmp-f-value-max').value = '';
+      Utils.el('cmp-f-value-min').style.display = 'none';
+      Utils.el('cmp-f-value-max').style.display = 'none';
+      Utils.el('cmp-f-rating').value = 'all';
+      _sellers = [];
+      Utils.el('cmp-seller-all').checked = true;
+      document.querySelectorAll('#cmp-seller-list input').forEach(cb => { cb.checked = false; });
+      Utils.setText('cmp-f-seller-btn', 'Todos os Vendedores');
+      this.render();
+    },
+
     onFunnelChange() {
       Utils.el('cmp-f-stage').value = 'all';
       this.render();
@@ -1421,6 +1438,14 @@ const Comparison = (() => {
       _renderOrigins('cmp-origin-a', sA.sourceMap, sA.total);
       _renderOrigins('cmp-origin-b', sB.sourceMap, sB.total);
       _renderTable(_tab === 'a' ? _dealsA : _dealsB);
+
+      const active = Utils.el('cmp-f-funnel').value !== 'ambos'
+        || Utils.el('cmp-f-stage').value  !== 'all'
+        || Utils.el('cmp-f-status').value !== 'all'
+        || Utils.el('cmp-f-value').value  !== 'all'
+        || Utils.el('cmp-f-rating').value !== 'all'
+        || _sellers.length > 0;
+      Utils.el('cmp-btn-clear').style.display = active ? 'inline-flex' : 'none';
     },
   };
 })();
