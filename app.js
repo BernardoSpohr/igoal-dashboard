@@ -1058,6 +1058,143 @@ const UI = {
 };
 
 /* ════════════════════════════════════════════
+   COMPARISON  (side panel — compare 2 months)
+════════════════════════════════════════════ */
+const Comparison = (() => {
+  let _lineChart = null;
+  let _revChart  = null;
+  const MS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  function _dealsForMonth(yr, mo) {
+    return State.getRaw().deals.filter(d => {
+      if (!d.created_at) return false;
+      const cd = new Date(d.created_at);
+      return cd.getFullYear() === yr && cd.getMonth() === mo - 1;
+    });
+  }
+
+  function _dailySeries(deals, yr, mo, fn) {
+    const days = new Date(yr, mo, 0).getDate();
+    const out = [];
+    for (let i = 1; i <= days; i++) {
+      out.push(fn(deals.filter(d => new Date(d.created_at).getDate() === i)));
+    }
+    return out;
+  }
+
+  function _upsertCmp(key, ref, ctx, config) {
+    if (ref) {
+      ref.data.labels          = config.data.labels;
+      ref.data.datasets[0].data  = config.data.datasets[0].data;
+      ref.data.datasets[0].label = config.data.datasets[0].label;
+      ref.data.datasets[1].data  = config.data.datasets[1].data;
+      ref.data.datasets[1].label = config.data.datasets[1].label;
+      ref.update();
+      return ref;
+    }
+    return new Chart(ctx, config);
+  }
+
+  return {
+    open() {
+      Utils.el('cmp-overlay').classList.add('open');
+      Utils.el('cmp-panel').classList.add('open');
+      this.render();
+    },
+
+    close() {
+      Utils.el('cmp-overlay').classList.remove('open');
+      Utils.el('cmp-panel').classList.remove('open');
+    },
+
+    render() {
+      const yrA = parseInt(Utils.el('cmp-year-a').value);
+      const moA = parseInt(Utils.el('cmp-month-a').value);
+      const yrB = parseInt(Utils.el('cmp-year-b').value);
+      const moB = parseInt(Utils.el('cmp-month-b').value);
+
+      const dealsA = _dealsForMonth(yrA, moA);
+      const dealsB = _dealsForMonth(yrB, moB);
+
+      const daysA = new Date(yrA, moA, 0).getDate();
+      const daysB = new Date(yrB, moB, 0).getDate();
+      const maxDays = Math.max(daysA, daysB);
+      const labels = Array.from({ length: maxDays }, (_, i) => String(i + 1).padStart(2, '0'));
+
+      const volA = [], volB = [], revA = [], revB = [];
+      for (let i = 1; i <= maxDays; i++) {
+        const dA = i <= daysA ? dealsA.filter(d => new Date(d.created_at).getDate() === i) : [];
+        const dB = i <= daysB ? dealsB.filter(d => new Date(d.created_at).getDate() === i) : [];
+        volA.push(dA.length);
+        volB.push(dB.length);
+        revA.push(dA.filter(Deal.isWon).reduce((s, x) => s + Deal.amount(x), 0));
+        revB.push(dB.filter(Deal.isWon).reduce((s, x) => s + Deal.amount(x), 0));
+      }
+
+      const lblA = `${MS[moA - 1]}/${yrA}`;
+      const lblB = `${MS[moB - 1]}/${yrB}`;
+
+      const BASE = {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#9CA3AF', font: { size: 10 }, maxTicksLimit: 16 } },
+          y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#9CA3AF', font: { size: 10 } }, beginAtZero: true },
+        },
+      };
+
+      _lineChart = _upsertCmp('line', _lineChart, Utils.el('cmpLineChart').getContext('2d'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { label: lblA, data: volA, borderColor: '#2563EB', backgroundColor: 'rgba(37,99,235,0.07)', fill: true, tension: 0.35, pointRadius: 2, borderWidth: 2 },
+            { label: lblB, data: volB, borderColor: '#7C3AED', backgroundColor: 'rgba(124,58,237,0.07)', fill: true, tension: 0.35, pointRadius: 2, borderWidth: 2 },
+          ],
+        },
+        options: BASE,
+      });
+
+      _revChart = _upsertCmp('rev', _revChart, Utils.el('cmpRevChart').getContext('2d'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { label: lblA, data: revA, borderColor: '#2563EB', backgroundColor: 'rgba(37,99,235,0.07)', fill: true, tension: 0.35, pointRadius: 2, borderWidth: 2 },
+            { label: lblB, data: revB, borderColor: '#7C3AED', backgroundColor: 'rgba(124,58,237,0.07)', fill: true, tension: 0.35, pointRadius: 2, borderWidth: 2 },
+          ],
+        },
+        options: {
+          ...BASE,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` R$ ${Utils.fmtCurrency(c.parsed.y)}` } } },
+          scales: {
+            ...BASE.scales,
+            y: { ...BASE.scales.y, ticks: { ...BASE.scales.y.ticks, callback: v => 'R$' + Utils.fmtCurrency(v) } },
+          },
+        },
+      });
+
+      const sA = computeStats(dealsA);
+      const sB = computeStats(dealsB);
+      const kpis = [
+        { label: 'Negócios',      a: sA.total,                          b: sB.total },
+        { label: 'Ganhos',        a: sA.wonCount,                       b: sB.wonCount },
+        { label: 'Conversão',     a: sA.convRate.toFixed(1) + '%',      b: sB.convRate.toFixed(1) + '%' },
+        { label: 'Receita Ganha', a: 'R$ ' + Utils.fmtCurrency(sA.wonRevenue), b: 'R$ ' + Utils.fmtCurrency(sB.wonRevenue) },
+      ];
+      Utils.el('cmp-kpis').innerHTML = kpis.map(k => `
+        <div class="cmp-kpi">
+          <div class="cmp-kpi-label">${k.label}</div>
+          <div class="cmp-kpi-vals">
+            <div class="cmp-kpi-val a"><div class="cmp-kpi-num">${k.a}</div><div class="cmp-kpi-sublbl">${lblA}</div></div>
+            <div class="cmp-kpi-val b"><div class="cmp-kpi-num">${k.b}</div><div class="cmp-kpi-sublbl">${lblB}</div></div>
+          </div>
+        </div>`).join('');
+    },
+  };
+})();
+
+/* ════════════════════════════════════════════
    BOOT
 ════════════════════════════════════════════ */
 window.addEventListener('DOMContentLoaded', () => {
