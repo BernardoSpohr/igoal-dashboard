@@ -1581,9 +1581,9 @@ const Tasks = (() => {
   }
 
   function _taskSeller(t) {
-    return (t.user && t.user.name)
-      || (t.responsible && t.responsible.name)
-      || t.responsible_name || t.owner_name || '';
+    return (t.users && t.users.length > 0 && t.users[0].name)
+      || (t.user && t.user.name)
+      || t.responsible_name || '';
   }
 
   function _taskStatus(t) {
@@ -1614,7 +1614,6 @@ const Tasks = (() => {
   // Sellers come from both tasks AND deals so the list is always populated
   function _buildSellerList() {
     const all = _allTasks();
-    if (all.length > 0) console.log("[Tasks] task0", JSON.stringify(all[0]));
     const taskSellers = all.map(_taskSeller);
     const dealSellers = State.getRaw().deals.map(Deal.seller);
     const sellers = [...new Set([...taskSellers, ...dealSellers].filter(Boolean))].sort();
