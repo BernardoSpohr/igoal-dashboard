@@ -371,17 +371,6 @@ tbody td:first-child{color:var(--text);font-weight:600;}
       <option value="won">Ganhos</option>
       <option value="lost">Perdidos</option>
     </select>
-    <select class="filter-select" id="f-value" onchange="Filters.onValueChange()">
-      <option value="all">Qualquer valor</option>
-      <option value="0-1000">Até R$ 1K</option>
-      <option value="1000-10000">R$ 1K – 10K</option>
-      <option value="10000-50000">R$ 10K – 50K</option>
-      <option value="50000-200000">R$ 50K – 200K</option>
-      <option value="200000+">Acima de R$ 200K</option>
-      <option value="custom">Personalizado...</option>
-    </select>
-    <input type="number" id="f-value-min" placeholder="Min R$" style="display:none;width:90px" class="filter-select" oninput="Filters.apply()">
-    <input type="number" id="f-value-max" placeholder="Max R$" style="display:none;width:90px" class="filter-select" oninput="Filters.apply()">
     <select class="filter-select" id="f-rating" onchange="Filters.apply()">
       <option value="all">Qualquer estrela</option>
       <option value="1">★ 1</option>
@@ -607,17 +596,6 @@ tbody td:first-child{color:var(--text);font-weight:600;}
       <option value="won">Ganhos</option>
       <option value="lost">Perdidos</option>
     </select>
-    <select class="filter-select" id="cmp-f-value" onchange="Comparison.onValueChange()">
-      <option value="all">Qualquer valor</option>
-      <option value="0-1000">Até R$ 1K</option>
-      <option value="1000-10000">R$ 1K – 10K</option>
-      <option value="10000-50000">R$ 10K – 50K</option>
-      <option value="50000-200000">R$ 50K – 200K</option>
-      <option value="200000+">Acima de R$ 200K</option>
-      <option value="custom">Personalizado...</option>
-    </select>
-    <input type="number" id="cmp-f-value-min" placeholder="Min R$" style="display:none;width:90px" class="filter-select" oninput="Comparison.render()">
-    <input type="number" id="cmp-f-value-max" placeholder="Max R$" style="display:none;width:90px" class="filter-select" oninput="Comparison.render()">
     <select class="filter-select" id="cmp-f-rating" onchange="Comparison.render()">
       <option value="all">Qualquer estrela</option>
       <option value="1">★ 1</option><option value="2">★★ 2</option>
@@ -732,6 +710,6 @@ tbody td:first-child{color:var(--text);font-weight:600;}
   </div>
 </div>
 
-<script src="app.js?v=22"></script>
+<script src="app.js?v=23"></script>
 </body>
 </html>

@@ -385,16 +385,10 @@ const Filters = {
   apply() {
     const stage  = Utils.el('f-stage').value;
     const status = Utils.el('f-status').value;
-    const fval   = Utils.el('f-value').value;
     const rating = Utils.el('f-rating').value;
     const selMonths = State.getMonths();
     const selYears  = State.getYears();
 
-    let vmin = null, vmax = null;
-    if (fval === 'custom') {
-      vmin = parseFloat(Utils.el('f-value-min').value) || 0;
-      vmax = parseFloat(Utils.el('f-value-max').value) || Infinity;
-    }
 
     const sellers = State.getSellers();
     const funnel = Utils.el('f-funnel').value;
@@ -448,10 +442,6 @@ const Filters = {
       // Rating
       if (rating !== 'all' && String(d.rating) !== rating) return false;
 
-      // Value
-      if (fval !== 'all') {
-        const amt = Deal.amount(d);
-        if (fval === 'custom')   { if (amt < vmin || amt > vmax) return false; }
         else if (fval === '200000+') { if (amt < 200000) return false; }
         else {
           const [lo, hi] = fval.split('-').map(Number);
@@ -502,7 +492,6 @@ const Filters = {
       || Utils.el('f-funnel').value  !== 'ambos'
       || Utils.el('f-stage').value   !== 'all'
       || Utils.el('f-status').value  !== 'all'
-      || Utils.el('f-value').value   !== 'all'
       || Utils.el('f-rating').value  !== 'all'
       || State.getSellers().length > 0;
   },
@@ -527,11 +516,6 @@ const Filters = {
     Utils.el('f-funnel').value = 'ambos';
     Utils.el('f-stage').value = 'all';
     Utils.el('f-status').value = 'all';
-    Utils.el('f-value').value = 'all';
-    Utils.el('f-value-min').value = '';
-    Utils.el('f-value-max').value = '';
-    Utils.el('f-value-min').style.display = 'none';
-    Utils.el('f-value-max').style.display = 'none';
     Utils.el('f-rating').value = 'all';
     State.setSellers([]);
     Utils.el('seller-all').checked = true;
@@ -540,12 +524,6 @@ const Filters = {
     this.apply();
   },
 
-  onValueChange() {
-    const v = Utils.el('f-value').value;
-    Utils.el('f-value-min').style.display = v === 'custom' ? '' : 'none';
-    Utils.el('f-value-max').style.display = v === 'custom' ? '' : 'none';
-    this.apply();
-  },
 
   toggleSellerMenu(e) {
     e.stopPropagation();
@@ -1189,13 +1167,7 @@ const Comparison = (() => {
     const funnel = Utils.el('cmp-f-funnel').value;
     const stage  = Utils.el('cmp-f-stage').value;
     const status = Utils.el('cmp-f-status').value;
-    const fval   = Utils.el('cmp-f-value').value;
     const rating = Utils.el('cmp-f-rating').value;
-    let vmin = null, vmax = null;
-    if (fval === 'custom') {
-      vmin = parseFloat(Utils.el('cmp-f-value-min').value) || 0;
-      vmax = parseFloat(Utils.el('cmp-f-value-max').value) || Infinity;
-    }
     const allowedStages = funnel === 'oportunidades'
       ? (d) => Deal.stage(d).includes('Funil')
       : funnel === 'carteira'
@@ -1227,12 +1199,6 @@ const Comparison = (() => {
       if (status === 'open' && !Deal.isOpen(d)) return false;
       if (_sellers.length > 0 && !_sellers.includes(Deal.seller(d))) return false;
       if (rating !== 'all' && String(d.rating) !== rating) return false;
-      if (fval !== 'all') {
-        const amt = Deal.amount(d);
-        if (fval === 'custom')       { if (amt < vmin || amt > vmax) return false; }
-        else if (fval === '200000+') { if (amt < 200000) return false; }
-        else { const [lo, hi] = fval.split('-').map(Number); if (amt < lo || amt >= hi) return false; }
-      }
       return true;
     });
   }
@@ -1510,11 +1476,6 @@ const Comparison = (() => {
       Utils.el('cmp-f-funnel').value = 'ambos';
       Utils.el('cmp-f-stage').value  = 'all';
       Utils.el('cmp-f-status').value = 'all';
-      Utils.el('cmp-f-value').value  = 'all';
-      Utils.el('cmp-f-value-min').value = '';
-      Utils.el('cmp-f-value-max').value = '';
-      Utils.el('cmp-f-value-min').style.display = 'none';
-      Utils.el('cmp-f-value-max').style.display = 'none';
       Utils.el('cmp-f-rating').value = 'all';
       _sellers = [];
       Utils.el('cmp-seller-all').checked = true;
@@ -1528,12 +1489,6 @@ const Comparison = (() => {
       this.render();
     },
 
-    onValueChange() {
-      const v = Utils.el('cmp-f-value').value;
-      Utils.el('cmp-f-value-min').style.display = v === 'custom' ? '' : 'none';
-      Utils.el('cmp-f-value-max').style.display = v === 'custom' ? '' : 'none';
-      this.render();
-    },
 
     toggleSellerMenu(e) {
       e.stopPropagation();
@@ -1609,7 +1564,6 @@ const Comparison = (() => {
         || Utils.el('cmp-f-funnel').value !== 'ambos'
         || Utils.el('cmp-f-stage').value  !== 'all'
         || Utils.el('cmp-f-status').value !== 'all'
-        || Utils.el('cmp-f-value').value  !== 'all'
         || Utils.el('cmp-f-rating').value !== 'all'
         || _sellers.length > 0;
       Utils.el('cmp-btn-clear').style.display = active ? 'inline-flex' : 'none';
