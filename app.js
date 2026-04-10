@@ -511,13 +511,13 @@ const Filters = {
     State.setMonths([]);
     State.setYears([2026]);
     State.setCMonths([]);
-    State.setCYears([]);
+    State.setCYears([2026]);
     Utils.el('month-all').checked  = true;
     Utils.el('year-all').checked   = false;
     Utils.el('cmonth-all').checked = true;
-    Utils.el('cyear-all').checked  = true;
+    Utils.el('cyear-all').checked  = false;
     document.querySelectorAll('#cmonth-list input').forEach(cb => { cb.checked = false; });
-    document.querySelectorAll('#cyear-list input').forEach(cb => { cb.checked = false; });
+    document.querySelectorAll('#cyear-list input').forEach(cb => { cb.checked = cb.value === '2026'; });
     this._updateCMonthBtn();
     this._updateCYearBtn();
     document.querySelectorAll('#month-list input').forEach(cb => { cb.checked = false; });
@@ -627,11 +627,11 @@ const Filters = {
   },
   _resetCDate() {
     State.setCMonths([]);
-    State.setCYears([]);
+    State.setCYears([2026]);
     Utils.el('cmonth-all').checked = true;
-    Utils.el('cyear-all').checked  = true;
+    Utils.el('cyear-all').checked  = false;
     document.querySelectorAll('#cmonth-list input').forEach(cb => { cb.checked = false; });
-    document.querySelectorAll('#cyear-list input').forEach(cb => { cb.checked = false; });
+    document.querySelectorAll('#cyear-list input').forEach(cb => { cb.checked = cb.value === '2026'; });
     this._updateCMonthBtn();
     this._updateCYearBtn();
   },
@@ -1623,12 +1623,18 @@ const Comparison = (() => {
 window.addEventListener('DOMContentLoaded', () => {
   Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
 
-  // Pré-seleciona 2026
+  // Pré-seleciona 2026 no período e na data de criação
   State.setYears([2026]);
   const cb2026 = document.querySelector('#year-list input[value="2026"]');
   if (cb2026) cb2026.checked = true;
   Utils.el('year-all').checked = false;
   Filters._updateYearBtn();
+
+  State.setCYears([2026]);
+  const cbC2026 = document.querySelector('#cyear-list input[value="2026"]');
+  if (cbC2026) cbC2026.checked = true;
+  Utils.el('cyear-all').checked = false;
+  Filters._updateCYearBtn();
 
   Utils.el('btn-login').addEventListener('click', () => Auth.login());
   Utils.el('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') Auth.login(); });
