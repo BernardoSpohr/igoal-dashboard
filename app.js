@@ -1761,13 +1761,17 @@ const Tasks = (() => {
     rebuildSellers() {
       _builtSellers = false;
       _buildSellerList();
+      const total = _allTasks().length;
+      if (total > 0) Utils.setText('tasks-nav-count', `(${total})`);
     },
 
     render() {
       const tasks = _filtered();
       const body  = Utils.el('tasks-body');
 
+      const total = _allTasks().length;
       Utils.setText('tasks-count-badge', `${tasks.length} tarefa${tasks.length !== 1 ? 's' : ''}`);
+      Utils.setText('tasks-nav-count', `(${total})`);
 
       if (tasks.length === 0) {
         Utils.hide('tasks-table-wrap');
