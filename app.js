@@ -1570,14 +1570,20 @@ const Comparison = (() => {
 ════════════════════════════════════════════ */
 const Tasks = (() => {
   let _sellers = [];
+  let _selMonths = [];
+  let _selYears  = [];
   let _builtSellers = false;
+
+  const MONTHS_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
   function _allTasks() {
     return State.getRaw().tasks || [];
   }
 
   function _taskSeller(t) {
-    return (t.user && t.user.name) || t.responsible_name || t.owner_name || '';
+    return (t.user && t.user.name)
+      || (t.responsible && t.responsible.name)
+      || t.responsible_name || t.owner_name || '';
   }
 
   function _taskStatus(t) {
@@ -1588,13 +1594,13 @@ const Tasks = (() => {
   }
 
   function _taskType(t) {
-    const map = { call: 'Ligação', email: 'E-mail', meeting: 'Reunião', task: 'Tarefa', visit: 'Visita', whatsapp: 'WhatsApp' };
+    const map = { call:'Ligação', email:'E-mail', meeting:'Reunião', task:'Tarefa', visit:'Visita', whatsapp:'WhatsApp' };
     return map[(t.type || '').toLowerCase()] || t.type || 'Tarefa';
   }
 
-  function _statusBadge(status) {
-    if (status === 'done')    return '<span style="background:#D1FAE5;color:#065F46;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600">Concluída</span>';
-    if (status === 'overdue') return '<span style="background:#FEE2E2;color:#991B1B;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600">Atrasada</span>';
+  function _statusBadge(s) {
+    if (s === 'done')    return '<span style="background:#D1FAE5;color:#065F46;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600">Concluída</span>';
+    if (s === 'overdue') return '<span style="background:#FEE2E2;color:#991B1B;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600">Atrasada</span>';
     return '<span style="background:#DBEAFE;color:#1E40AF;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600">Pendente</span>';
   }
 
@@ -1605,9 +1611,11 @@ const Tasks = (() => {
     return dt.toLocaleDateString('pt-BR');
   }
 
+  // Sellers come from both tasks AND deals so the list is always populated
   function _buildSellerList() {
-    const all = _allTasks();
-    const sellers = [...new Set(all.map(_taskSeller).filter(Boolean))].sort();
+    const taskSellers = _allTasks().map(_taskSeller);
+    const dealSellers = State.getRaw().deals.map(Deal.seller);
+    const sellers = [...new Set([...taskSellers, ...dealSellers].filter(Boolean))].sort();
     const list = Utils.el('tasks-seller-list');
     if (!list) return;
     list.innerHTML = sellers.map(s =>
@@ -1618,12 +1626,26 @@ const Tasks = (() => {
     _builtSellers = true;
   }
 
+  function _updateMonthBtn() {
+    Utils.setText('tasks-f-month-btn', _selMonths.length === 0 ? 'Todos os Meses' : _selMonths.map(m => MONTHS_PT[m-1]).join(', '));
+  }
+  function _updateYearBtn() {
+    Utils.setText('tasks-f-year-btn', _selYears.length === 0 ? 'Todos os Anos' : _selYears.join(', '));
+  }
+
   function _filtered() {
     const status = Utils.el('tasks-f-status').value;
     return _allTasks().filter(t => {
-      const ts = _taskStatus(t);
-      if (status !== 'all' && ts !== status) return false;
+      if (status !== 'all' && _taskStatus(t) !== status) return false;
       if (_sellers.length > 0 && !_sellers.includes(_taskSeller(t))) return false;
+      const due = t.due_date || t.date;
+      if (_selMonths.length > 0 || _selYears.length > 0) {
+        if (!due) return false;
+        const dt = new Date(due);
+        if (isNaN(dt)) return false;
+        if (_selMonths.length > 0 && !_selMonths.includes(dt.getMonth() + 1)) return false;
+        if (_selYears.length  > 0 && !_selYears.includes(dt.getFullYear()))   return false;
+      }
       return true;
     });
   }
@@ -1648,9 +1670,59 @@ const Tasks = (() => {
     toggleSellerMenu(e) {
       e.stopPropagation();
       const menu = Utils.el('tasks-f-seller-menu');
-      const isOpen = menu.style.display === 'block';
+      const open = menu.style.display === 'block';
       document.querySelectorAll('[id$="-menu"]').forEach(m => { m.style.display = 'none'; });
-      menu.style.display = isOpen ? 'none' : 'block';
+      menu.style.display = open ? 'none' : 'block';
+    },
+
+    toggleMonthMenu(e) {
+      e.stopPropagation();
+      const menu = Utils.el('tasks-f-month-menu');
+      const open = menu.style.display === 'block';
+      document.querySelectorAll('[id$="-menu"]').forEach(m => { m.style.display = 'none'; });
+      menu.style.display = open ? 'none' : 'block';
+    },
+
+    toggleYearMenu(e) {
+      e.stopPropagation();
+      const menu = Utils.el('tasks-f-year-menu');
+      const open = menu.style.display === 'block';
+      document.querySelectorAll('[id$="-menu"]').forEach(m => { m.style.display = 'none'; });
+      menu.style.display = open ? 'none' : 'block';
+    },
+
+    onMonthAll() {
+      _selMonths = [];
+      document.querySelectorAll('#tasks-month-list input').forEach(cb => { cb.checked = false; });
+      Utils.el('tasks-month-all').checked = true;
+      _updateMonthBtn();
+      this.render();
+    },
+
+    onMonthCheck() {
+      _selMonths = [];
+      document.querySelectorAll('#tasks-month-list input:checked').forEach(cb => _selMonths.push(+cb.value));
+      Utils.el('tasks-month-all').checked = _selMonths.length === 0;
+      if (_selMonths.length === 0) Utils.el('tasks-month-all').checked = true;
+      _updateMonthBtn();
+      this.render();
+    },
+
+    onYearAll() {
+      _selYears = [];
+      document.querySelectorAll('#tasks-year-list input').forEach(cb => { cb.checked = false; });
+      Utils.el('tasks-year-all').checked = true;
+      _updateYearBtn();
+      this.render();
+    },
+
+    onYearCheck() {
+      _selYears = [];
+      document.querySelectorAll('#tasks-year-list input:checked').forEach(cb => _selYears.push(+cb.value));
+      Utils.el('tasks-year-all').checked = _selYears.length === 0;
+      if (_selYears.length === 0) Utils.el('tasks-year-all').checked = true;
+      _updateYearBtn();
+      this.render();
     },
 
     onSellerAll() {
@@ -1669,11 +1741,19 @@ const Tasks = (() => {
     },
 
     clearFilters() {
-      _sellers = [];
+      _sellers   = [];
+      _selMonths = [];
+      _selYears  = [];
       Utils.el('tasks-f-status').value = 'all';
       Utils.el('tasks-seller-all').checked = true;
       document.querySelectorAll('#tasks-seller-list input').forEach(cb => { cb.checked = false; });
+      Utils.el('tasks-month-all').checked = true;
+      document.querySelectorAll('#tasks-month-list input').forEach(cb => { cb.checked = false; });
+      Utils.el('tasks-year-all').checked = true;
+      document.querySelectorAll('#tasks-year-list input').forEach(cb => { cb.checked = false; });
       Utils.setText('tasks-f-seller-btn', 'Todos os Responsáveis');
+      _updateMonthBtn();
+      _updateYearBtn();
       this.render();
     },
 
@@ -1684,9 +1764,7 @@ const Tasks = (() => {
 
     render() {
       const tasks = _filtered();
-      const body = Utils.el('tasks-body');
-      const wrap = Utils.el('tasks-table-wrap');
-      const empty = Utils.el('tasks-empty');
+      const body  = Utils.el('tasks-body');
 
       Utils.setText('tasks-count-badge', `${tasks.length} tarefa${tasks.length !== 1 ? 's' : ''}`);
 
@@ -1698,7 +1776,7 @@ const Tasks = (() => {
         Utils.show('tasks-table-wrap');
         body.innerHTML = tasks.map(t => {
           const status = _taskStatus(t);
-          const deal = (t.deal && (t.deal.name || t.deal.title)) || t.deal_name || '—';
+          const deal   = (t.deal && (t.deal.name || t.deal.title)) || t.deal_name || '—';
           return `<tr>
             <td>${t.subject || t.name || t.title || '—'}</td>
             <td>${_taskType(t)}</td>
@@ -1710,7 +1788,10 @@ const Tasks = (() => {
         }).join('');
       }
 
-      const active = Utils.el('tasks-f-status').value !== 'all' || _sellers.length > 0;
+      const active = Utils.el('tasks-f-status').value !== 'all'
+        || _sellers.length > 0
+        || _selMonths.length > 0
+        || _selYears.length  > 0;
       Utils.el('tasks-btn-clear').style.display = active ? 'inline-flex' : 'none';
     },
   };

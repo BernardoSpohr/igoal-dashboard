@@ -735,6 +735,41 @@ tbody td:first-child{color:var(--text);font-weight:600;}
       <option value="overdue">Atrasadas</option>
       <option value="done">Concluídas</option>
     </select>
+    <span class="filter-label" style="margin-left:4px">Vencimento</span>
+    <div style="position:relative;display:inline-block">
+      <button class="filter-select" id="tasks-f-month-btn" onclick="Tasks.toggleMonthMenu(event)" style="cursor:pointer;min-width:130px;text-align:left">Todos os Meses</button>
+      <div id="tasks-f-month-menu" style="display:none;position:absolute;top:100%;left:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px;z-index:400;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" id="tasks-month-all" checked onchange="Tasks.onMonthAll()"> Todos</label>
+        <div id="tasks-month-list">
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="1" onchange="Tasks.onMonthCheck()"> Janeiro</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="2" onchange="Tasks.onMonthCheck()"> Fevereiro</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="3" onchange="Tasks.onMonthCheck()"> Março</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="4" onchange="Tasks.onMonthCheck()"> Abril</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="5" onchange="Tasks.onMonthCheck()"> Maio</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="6" onchange="Tasks.onMonthCheck()"> Junho</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="7" onchange="Tasks.onMonthCheck()"> Julho</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="8" onchange="Tasks.onMonthCheck()"> Agosto</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="9" onchange="Tasks.onMonthCheck()"> Setembro</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="10" onchange="Tasks.onMonthCheck()"> Outubro</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="11" onchange="Tasks.onMonthCheck()"> Novembro</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="12" onchange="Tasks.onMonthCheck()"> Dezembro</label>
+        </div>
+      </div>
+    </div>
+    <div style="position:relative;display:inline-block">
+      <button class="filter-select" id="tasks-f-year-btn" onclick="Tasks.toggleYearMenu(event)" style="cursor:pointer;min-width:110px;text-align:left">Todos os Anos</button>
+      <div id="tasks-f-year-menu" style="display:none;position:absolute;top:100%;left:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px;z-index:400;min-width:130px;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" id="tasks-year-all" checked onchange="Tasks.onYearAll()"> Todos</label>
+        <div id="tasks-year-list">
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="2021" onchange="Tasks.onYearCheck()"> 2021</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="2022" onchange="Tasks.onYearCheck()"> 2022</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="2023" onchange="Tasks.onYearCheck()"> 2023</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="2024" onchange="Tasks.onYearCheck()"> 2024</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="2025" onchange="Tasks.onYearCheck()"> 2025</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="2026" onchange="Tasks.onYearCheck()"> 2026</label>
+        </div>
+      </div>
+    </div>
     <div style="position:relative;display:inline-block">
       <button class="filter-select" id="tasks-f-seller-btn" onclick="Tasks.toggleSellerMenu(event)" style="cursor:pointer;min-width:160px;text-align:left">Todos os Responsáveis</button>
       <div id="tasks-f-seller-menu" style="display:none;position:absolute;top:100%;left:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px;z-index:400;min-width:200px;max-height:240px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
@@ -770,6 +805,6 @@ tbody td:first-child{color:var(--text);font-weight:600;}
   </div>
 </div>
 
-<script src="app.js?v=25"></script>
+<script src="app.js?v=26"></script>
 </body>
 </html>
