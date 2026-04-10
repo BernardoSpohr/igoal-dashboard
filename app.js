@@ -342,7 +342,6 @@ const Dashboard = {
     Utils.hide('loading-screen');
     Utils.show('app', 'flex');
     Filters.apply();
-    State.startAutoRefresh(() => Dashboard.refresh());
     UI.setStatus(true);
   },
 
