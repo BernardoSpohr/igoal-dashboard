@@ -408,19 +408,22 @@ const Filters = {
       // Funnel
       if (allowedStages && !allowedStages(d)) return false;
 
-      if (useDateRange) {
-        // Quando data personalizada está ativa: ignora filtros de mês/ano
-        // Mostra qualquer negócio criado no intervalo (incluindo abertos que avançaram de mês)
-        if (dateFrom && (!cd || cd < dateFrom)) return false;
-        if (dateTo   && (!cd || cd > dateTo))   return false;
-      } else {
-        // Period (mês/ano via checkboxes)
-        if (selMonths.length > 0 || selYears.length > 0) {
-          if (!cd) return false;
-          if (selMonths.length > 0 && !selMonths.includes(cd.getMonth() + 1)) return false;
-          if (selYears.length  > 0 && !selYears.includes(cd.getFullYear()))   return false;
-        }
-      }
+      // Verifica se o negócio passa pelo filtro de mês/ano
+      const passesMonthYear = (() => {
+        if (selMonths.length === 0 && selYears.length === 0) return true;
+        if (!cd) return false;
+        if (selMonths.length > 0 && !selMonths.includes(cd.getMonth() + 1)) return false;
+        if (selYears.length  > 0 && !selYears.includes(cd.getFullYear()))   return false;
+        return true;
+      })();
+
+      // Verifica se é aberto criado no intervalo de data personalizada
+      const passesDateRange = useDateRange && Deal.isOpen(d)
+        && (!dateFrom || (cd && cd >= dateFrom))
+        && (!dateTo   || (cd && cd <= dateTo));
+
+      // Inclui se passar pelo mês/ano OU se for aberto no intervalo de criação
+      if (!passesMonthYear && !passesDateRange) return false;
 
       // Stage
       if (stage !== 'all' && Deal.stage(d) !== stage) return false;
@@ -1128,14 +1131,12 @@ const Comparison = (() => {
         ? (d) => Deal.stage(d).includes('Carteira') || Deal.isWon(d)
         : null;
 
+    // Na comparação, os deals já vêm pré-filtrados por mês/ano (via _dealsForMonth)
+    // A data de criação soma abertos criados no intervalo que não estejam nesse mês
     const useDateRange = dateFrom || dateTo;
     return deals.filter(d => {
       const cd = d.created_at ? new Date(d.created_at) : null;
       if (allowedStages && !allowedStages(d)) return false;
-      if (useDateRange) {
-        if (dateFrom && (!cd || cd < dateFrom)) return false;
-        if (dateTo   && (!cd || cd > dateTo))   return false;
-      }
       if (stage !== 'all' && Deal.stage(d) !== stage) return false;
       if (status === 'won'  && !Deal.isWon(d))  return false;
       if (status === 'lost' && !Deal.isLost(d)) return false;
