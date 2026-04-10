@@ -277,6 +277,12 @@ tbody td:first-child{color:var(--text);font-weight:600;}
         </svg>
         Comparar
       </button>
+      <button class="tb-btn" onclick="Tasks.open()">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8l2 2 4-4"/>
+        </svg>
+        Tarefas
+      </button>
       <button class="tb-btn" id="ref-btn" onclick="Dashboard.refresh()">
         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M1.5 8A6.5 6.5 0 108 1.5"/><polyline points="1.5,1.5 1.5,5.5 5.5,5.5"/>
@@ -710,6 +716,60 @@ tbody td:first-child{color:var(--text);font-weight:600;}
   </div>
 </div>
 
-<script src="app.js?v=24"></script>
+<!-- TASKS PANEL -->
+<div class="cmp-overlay" id="tasks-overlay" onclick="Tasks.close()"></div>
+<div class="cmp-panel" id="tasks-panel">
+  <nav class="cmp-nav">
+    <div class="cmp-brand"><div class="logo-mark">iG</div>Tarefas</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-left:auto">
+      <span id="tasks-count-badge" style="font-size:12px;color:var(--muted)"></span>
+      <button class="cmp-close-btn" onclick="Tasks.close()">✕ Fechar</button>
+    </div>
+  </nav>
+
+  <div class="filter-bar" style="flex-shrink:0">
+    <span class="filter-label">Filtros</span>
+    <select class="filter-select" id="tasks-f-status" onchange="Tasks.render()">
+      <option value="all">Todos os Status</option>
+      <option value="pending">Pendentes</option>
+      <option value="overdue">Atrasadas</option>
+      <option value="done">Concluídas</option>
+    </select>
+    <div style="position:relative;display:inline-block">
+      <button class="filter-select" id="tasks-f-seller-btn" onclick="Tasks.toggleSellerMenu(event)" style="cursor:pointer;min-width:160px;text-align:left">Todos os Responsáveis</button>
+      <div id="tasks-f-seller-menu" style="display:none;position:absolute;top:100%;left:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px;z-index:400;min-width:200px;max-height:240px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer">
+          <input type="checkbox" id="tasks-seller-all" checked onchange="Tasks.onSellerAll()"> Todos
+        </label>
+        <div id="tasks-seller-list"></div>
+      </div>
+    </div>
+    <button class="btn-clear" id="tasks-btn-clear" style="display:none" onclick="Tasks.clearFilters()">✕ Limpar filtros</button>
+  </div>
+
+  <div class="cmp-body">
+    <div id="tasks-loading" style="display:none;text-align:center;padding:40px;color:var(--muted);font-size:14px">Carregando tarefas...</div>
+    <div id="tasks-empty" style="display:none;text-align:center;padding:40px;color:var(--muted);font-size:14px">Nenhuma tarefa encontrada.</div>
+    <div class="table-card" id="tasks-table-wrap" style="margin-bottom:40px">
+      <div class="t-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Tarefa</th>
+              <th>Tipo</th>
+              <th>Negócio</th>
+              <th>Responsável</th>
+              <th>Vencimento</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="tasks-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js?v=25"></script>
 </body>
 </html>
