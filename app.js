@@ -442,13 +442,6 @@ const Filters = {
       // Rating
       if (rating !== 'all' && String(d.rating) !== rating) return false;
 
-        else if (fval === '200000+') { if (amt < 200000) return false; }
-        else {
-          const [lo, hi] = fval.split('-').map(Number);
-          if (amt < lo || amt >= hi) return false;
-        }
-      }
-
       return true;
     });
 
