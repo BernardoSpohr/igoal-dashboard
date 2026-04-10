@@ -1613,7 +1613,9 @@ const Tasks = (() => {
 
   // Sellers come from both tasks AND deals so the list is always populated
   function _buildSellerList() {
-    const taskSellers = _allTasks().map(_taskSeller);
+    const all = _allTasks();
+    if (all.length > 0) console.log('[Tasks] sample task fields:', JSON.stringify(all[0]));
+    const taskSellers = all.map(_taskSeller);
     const dealSellers = State.getRaw().deals.map(Deal.seller);
     const sellers = [...new Set([...taskSellers, ...dealSellers].filter(Boolean))].sort();
     const list = Utils.el('tasks-seller-list');
