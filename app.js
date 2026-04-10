@@ -398,6 +398,9 @@ const Filters = {
         ? (d) => Deal.stage(d).includes('Carteira') || Deal.isWon(d)
         : null;
 
+    const dateFrom = Utils.el('f-date-from').value ? new Date(Utils.el('f-date-from').value) : null;
+    const dateTo   = Utils.el('f-date-to').value   ? new Date(Utils.el('f-date-to').value + 'T23:59:59') : null;
+
     const filtered = State.getRaw().deals.filter((d) => {
       const cd = d.created_at ? new Date(d.created_at) : null;
 
@@ -410,6 +413,10 @@ const Filters = {
         if (selMonths.length > 0 && !selMonths.includes(cd.getMonth() + 1)) return false;
         if (selYears.length  > 0 && !selYears.includes(cd.getFullYear()))   return false;
       }
+
+      // Data de criação personalizada
+      if (dateFrom && (!cd || cd < dateFrom)) return false;
+      if (dateTo   && (!cd || cd > dateTo))   return false;
 
       // Stage
       if (stage !== 'all' && Deal.stage(d) !== stage) return false;
@@ -474,6 +481,8 @@ const Filters = {
   _isActive() {
     return State.getMonths().length > 0
       || State.getYears().length  > 0
+      || !!Utils.el('f-date-from').value
+      || !!Utils.el('f-date-to').value
       || Utils.el('f-funnel').value  !== 'ambos'
       || Utils.el('f-stage').value   !== 'all'
       || Utils.el('f-status').value  !== 'all'
@@ -485,6 +494,8 @@ const Filters = {
   clear() {
     State.setMonths([]);
     State.setYears([2026]);
+    Utils.el('f-date-from').value = '';
+    Utils.el('f-date-to').value   = '';
     Utils.el('month-all').checked = true;
     Utils.el('year-all').checked  = false;
     document.querySelectorAll('#month-list input').forEach(cb => { cb.checked = false; });
@@ -1095,11 +1106,13 @@ const Comparison = (() => {
   }
 
   function _applyFilters(deals) {
-    const funnel = Utils.el('cmp-f-funnel').value;
-    const stage  = Utils.el('cmp-f-stage').value;
-    const status = Utils.el('cmp-f-status').value;
-    const fval   = Utils.el('cmp-f-value').value;
-    const rating = Utils.el('cmp-f-rating').value;
+    const funnel   = Utils.el('cmp-f-funnel').value;
+    const stage    = Utils.el('cmp-f-stage').value;
+    const status   = Utils.el('cmp-f-status').value;
+    const fval     = Utils.el('cmp-f-value').value;
+    const rating   = Utils.el('cmp-f-rating').value;
+    const dateFrom = Utils.el('cmp-f-date-from').value ? new Date(Utils.el('cmp-f-date-from').value) : null;
+    const dateTo   = Utils.el('cmp-f-date-to').value   ? new Date(Utils.el('cmp-f-date-to').value + 'T23:59:59') : null;
     let vmin = null, vmax = null;
     if (fval === 'custom') {
       vmin = parseFloat(Utils.el('cmp-f-value-min').value) || 0;
@@ -1112,7 +1125,10 @@ const Comparison = (() => {
         : null;
 
     return deals.filter(d => {
+      const cd = d.created_at ? new Date(d.created_at) : null;
       if (allowedStages && !allowedStages(d)) return false;
+      if (dateFrom && (!cd || cd < dateFrom)) return false;
+      if (dateTo   && (!cd || cd > dateTo))   return false;
       if (stage !== 'all' && Deal.stage(d) !== stage) return false;
       if (status === 'won'  && !Deal.isWon(d))  return false;
       if (status === 'lost' && !Deal.isLost(d)) return false;
@@ -1121,7 +1137,7 @@ const Comparison = (() => {
       if (rating !== 'all' && String(d.rating) !== rating) return false;
       if (fval !== 'all') {
         const amt = Deal.amount(d);
-        if (fval === 'custom')     { if (amt < vmin || amt > vmax) return false; }
+        if (fval === 'custom')       { if (amt < vmin || amt > vmax) return false; }
         else if (fval === '200000+') { if (amt < 200000) return false; }
         else { const [lo, hi] = fval.split('-').map(Number); if (amt < lo || amt >= hi) return false; }
       }
@@ -1349,6 +1365,8 @@ const Comparison = (() => {
     },
 
     clearFilters() {
+      Utils.el('cmp-f-date-from').value = '';
+      Utils.el('cmp-f-date-to').value   = '';
       Utils.el('cmp-f-funnel').value = 'ambos';
       Utils.el('cmp-f-stage').value  = 'all';
       Utils.el('cmp-f-status').value = 'all';
@@ -1446,7 +1464,9 @@ const Comparison = (() => {
       _renderOrigins('cmp-origin-b', sB.sourceMap, sB.total);
       _renderTable(_tab === 'a' ? _dealsA : _dealsB);
 
-      const active = Utils.el('cmp-f-funnel').value !== 'ambos'
+      const active = !!Utils.el('cmp-f-date-from').value
+        || !!Utils.el('cmp-f-date-to').value
+        || Utils.el('cmp-f-funnel').value !== 'ambos'
         || Utils.el('cmp-f-stage').value  !== 'all'
         || Utils.el('cmp-f-status').value !== 'all'
         || Utils.el('cmp-f-value').value  !== 'all'

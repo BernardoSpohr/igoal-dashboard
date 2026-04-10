@@ -322,6 +322,10 @@ tbody td:first-child{color:var(--text);font-weight:600;}
         </div>
       </div>
     </div>
+    <span class="filter-label" style="margin-left:4px">Criação</span>
+    <input type="date" id="f-date-from" class="filter-select" style="width:140px;padding:6px 10px" oninput="Filters.apply()" title="De">
+    <span style="font-size:11px;color:var(--text3)">até</span>
+    <input type="date" id="f-date-to" class="filter-select" style="width:140px;padding:6px 10px" oninput="Filters.apply()" title="Até">
     <select class="filter-select" id="f-funnel" onchange="Filters.onFunnelChange()">
       <option value="ambos">Ambos os Funis</option>
       <option value="oportunidades">Funil de Oportunidades</option>
@@ -523,6 +527,10 @@ tbody td:first-child{color:var(--text);font-weight:600;}
 
   <div class="filter-bar" style="flex-shrink:0">
     <span class="filter-label">Filtros</span>
+    <span class="filter-label" style="margin-left:4px">Criação</span>
+    <input type="date" id="cmp-f-date-from" class="filter-select" style="width:140px;padding:6px 10px" oninput="Comparison.render()" title="De">
+    <span style="font-size:11px;color:var(--text3)">até</span>
+    <input type="date" id="cmp-f-date-to" class="filter-select" style="width:140px;padding:6px 10px" oninput="Comparison.render()" title="Até">
     <select class="filter-select" id="cmp-f-funnel" onchange="Comparison.onFunnelChange()">
       <option value="ambos">Ambos os Funis</option>
       <option value="oportunidades">Funil de Oportunidades</option>
@@ -662,6 +670,6 @@ tbody td:first-child{color:var(--text);font-weight:600;}
   </div>
 </div>
 
-<script src="app.js?v=16"></script>
+<script src="app.js?v=17"></script>
 </body>
 </html>
