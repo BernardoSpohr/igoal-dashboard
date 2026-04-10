@@ -625,10 +625,18 @@ const Filters = {
     const m = Utils.el('f-cmonth-menu');
     m.style.display = m.style.display === 'none' ? '' : 'none';
   },
-  onCMonthAll() {
+  _resetCDate() {
     State.setCMonths([]);
-    document.querySelectorAll('#cmonth-list input').forEach(cb => { cb.checked = Utils.el('cmonth-all').checked; });
+    State.setCYears([]);
+    Utils.el('cmonth-all').checked = true;
+    Utils.el('cyear-all').checked  = true;
+    document.querySelectorAll('#cmonth-list input').forEach(cb => { cb.checked = false; });
+    document.querySelectorAll('#cyear-list input').forEach(cb => { cb.checked = false; });
     this._updateCMonthBtn();
+    this._updateCYearBtn();
+  },
+  onCMonthAll() {
+    this._resetCDate();
     this.apply();
   },
   onCMonthCheck() {
@@ -650,9 +658,7 @@ const Filters = {
     m.style.display = m.style.display === 'none' ? '' : 'none';
   },
   onCYearAll() {
-    State.setCYears([]);
-    document.querySelectorAll('#cyear-list input').forEach(cb => { cb.checked = Utils.el('cyear-all').checked; });
-    this._updateCYearBtn();
+    this._resetCDate();
     this.apply();
   },
   onCYearCheck() {
@@ -1455,10 +1461,17 @@ const Comparison = (() => {
       const m = Utils.el('cmp-f-cmonth-menu');
       m.style.display = m.style.display === 'none' ? '' : 'none';
     },
-    onCMonthAll() {
-      _cMonths = [];
-      document.querySelectorAll('#cmp-cmonth-list input').forEach(cb => { cb.checked = Utils.el('cmp-cmonth-all').checked; });
+    _resetCDate() {
+      _cMonths = []; _cYears = [];
+      Utils.el('cmp-cmonth-all').checked = true;
+      Utils.el('cmp-cyear-all').checked  = true;
+      document.querySelectorAll('#cmp-cmonth-list input').forEach(cb => { cb.checked = false; });
+      document.querySelectorAll('#cmp-cyear-list input').forEach(cb => { cb.checked = false; });
       Utils.setText('cmp-f-cmonth-btn', 'Todos os Meses');
+      Utils.setText('cmp-f-cyear-btn', 'Todos os Anos');
+    },
+    onCMonthAll() {
+      this._resetCDate();
       this.render();
     },
     onCMonthCheck() {
@@ -1475,9 +1488,7 @@ const Comparison = (() => {
       m.style.display = m.style.display === 'none' ? '' : 'none';
     },
     onCYearAll() {
-      _cYears = [];
-      document.querySelectorAll('#cmp-cyear-list input').forEach(cb => { cb.checked = Utils.el('cmp-cyear-all').checked; });
-      Utils.setText('cmp-f-cyear-btn', 'Todos os Anos');
+      this._resetCDate();
       this.render();
     },
     onCYearCheck() {
