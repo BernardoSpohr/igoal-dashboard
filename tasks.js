@@ -193,6 +193,11 @@ const Tasks = (() => {
       this.render();
     },
 
+    initYearFilter() {
+      _selYears = [2026];
+      _updateYearBtn();
+    },
+
     rebuildSellers() {
       _builtSellers = false;
       _buildSellerList();

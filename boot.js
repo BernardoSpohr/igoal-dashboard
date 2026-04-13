@@ -19,6 +19,12 @@ window.addEventListener('DOMContentLoaded', () => {
   Utils.el('cyear-all').checked = false;
   Filters._updateCYearBtn();
 
+  // Pré-seleciona 2026 no filtro de vencimento de tarefas
+  const cbTask2026 = document.querySelector('#tasks-year-list input[value="2026"]');
+  if (cbTask2026) cbTask2026.checked = true;
+  Utils.el('tasks-year-all').checked = false;
+  Tasks.initYearFilter();
+
   Utils.el('btn-login').addEventListener('click', () => Auth.login());
   Utils.el('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') Auth.login(); });
   Utils.el('login-user').addEventListener('keydown', e => { if (e.key === 'Enter') Utils.el('login-pass').focus(); });
