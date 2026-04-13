@@ -1,0 +1,303 @@
+'use strict';
+
+/* ════════════════════════════════════════════
+   FILTERS
+════════════════════════════════════════════ */
+const Filters = {
+  onFunnelChange() {
+    Utils.el('f-stage').value = 'all';
+    this.apply();
+  },
+
+  apply() {
+    const stage  = Utils.el('f-stage').value;
+    const status = Utils.el('f-status').value;
+    const rating = Utils.el('f-rating').value;
+    const selMonths = State.getMonths();
+    const selYears  = State.getYears();
+
+    const sellers = State.getSellers();
+    const funnel = Utils.el('f-funnel').value;
+    const allowedStages = funnel === 'oportunidades'
+      ? (d) => Deal.stage(d).includes('Funil')
+      : funnel === 'carteira'
+        ? (d) => Deal.stage(d).includes('Carteira') || Deal.isWon(d)
+        : null;
+
+    const selCMonths = State.getCMonths();
+    const selCYears  = State.getCYears();
+    const useCDate   = selCMonths.length > 0 || selCYears.length > 0;
+
+    const filtered = State.getRaw().deals.filter((d) => {
+      const cd = d.created_at ? new Date(d.created_at) : null;
+
+      // Funnel
+      if (allowedStages && !allowedStages(d)) return false;
+
+      // Verifica se passa pelo filtro de mês/ano (período principal)
+      const passesMonthYear = (() => {
+        if (selMonths.length === 0 && selYears.length === 0) return true;
+        if (!cd) return false;
+        if (selMonths.length > 0 && !selMonths.includes(cd.getMonth() + 1)) return false;
+        if (selYears.length  > 0 && !selYears.includes(cd.getFullYear()))   return false;
+        return true;
+      })();
+
+      // Verifica se é aberto criado no mês/ano de criação selecionado
+      const passesCDate = useCDate && Deal.isOpen(d) && (() => {
+        if (!cd) return false;
+        if (selCMonths.length > 0 && !selCMonths.includes(cd.getMonth() + 1)) return false;
+        if (selCYears.length  > 0 && !selCYears.includes(cd.getFullYear()))   return false;
+        return true;
+      })();
+
+      // Inclui se passar pelo período principal OU se for aberto no período de criação
+      if (!passesMonthYear && !passesCDate) return false;
+
+      // Stage
+      if (stage !== 'all' && Deal.stage(d) !== stage) return false;
+
+      // Status
+      if (status === 'won'  && !Deal.isWon(d)) return false;
+      if (status === 'lost' && !Deal.isLost(d)) return false;
+      if (status === 'open' && !Deal.isOpen(d)) return false;
+
+      // Sellers
+      if (sellers.length > 0 && !sellers.includes(Deal.seller(d))) return false;
+
+      // Rating
+      if (rating !== 'all' && String(d.rating) !== rating) return false;
+
+      return true;
+    });
+
+    State.setFiltered(filtered);
+
+    // Update period label
+    const MONTHS_LABEL = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const mLabel = selMonths.length > 0 ? selMonths.map(m => MONTHS_LABEL[m-1]).join(', ') : 'Todos os meses';
+    const yLabel = selYears.length  > 0 ? selYears.join(', ') : 'Todos os anos';
+    Utils.setText('period-display', `${mLabel} · ${yLabel}`);
+
+    // Check active state BEFORE rebuilding dropdowns (values are still set)
+    const isActive = this._isActive();
+
+    // Rebuild stage dropdown (preserve selection)
+    const stageSel = Utils.el('f-stage');
+    const curStage = stageSel.value;
+    const allStages = [...new Set(State.getRaw().deals.map(Deal.stage).filter(Boolean))];
+    const stages = allowedStages
+      ? allStages.filter(s => funnel === 'carteira' ? s.includes('Carteira') : s.includes('Funil'))
+      : allStages;
+    stageSel.innerHTML = '<option value="all">Todas as Etapas</option>' +
+      stages.map(s => `<option value="${Utils.esc(s)}">${Utils.esc(s)}</option>`).join('');
+    if (stages.includes(curStage)) stageSel.value = curStage;
+
+    // Rebuild seller list
+    const allSellers = [...new Set(State.getRaw().deals.map(Deal.seller).filter(Boolean))].sort();
+    this._buildSellerList(allSellers);
+
+    // Show/hide clear button
+    Utils.el('btn-clear-filters').style.display = isActive ? 'inline-flex' : 'none';
+
+    Renderer.renderAll();
+  },
+
+  _isActive() {
+    return State.getMonths().length  > 0
+      || State.getYears().length   > 0
+      || State.getCMonths().length > 0
+      || State.getCYears().length  > 0
+      || Utils.el('f-funnel').value  !== 'ambos'
+      || Utils.el('f-stage').value   !== 'all'
+      || Utils.el('f-status').value  !== 'all'
+      || Utils.el('f-rating').value  !== 'all'
+      || State.getSellers().length > 0;
+  },
+
+  clear() {
+    State.setMonths([]);
+    State.setYears([2026]);
+    State.setCMonths([]);
+    State.setCYears([2026]);
+    Utils.el('month-all').checked  = true;
+    Utils.el('year-all').checked   = false;
+    Utils.el('cmonth-all').checked = true;
+    Utils.el('cyear-all').checked  = false;
+    document.querySelectorAll('#cmonth-list input').forEach(cb => { cb.checked = false; });
+    document.querySelectorAll('#cyear-list input').forEach(cb => { cb.checked = cb.value === '2026'; });
+    this._updateCMonthBtn();
+    this._updateCYearBtn();
+    document.querySelectorAll('#month-list input').forEach(cb => { cb.checked = false; });
+    document.querySelectorAll('#year-list input').forEach(cb => { cb.checked = cb.value === '2026'; });
+    this._updateMonthBtn();
+    this._updateYearBtn();
+    Utils.el('f-funnel').value = 'ambos';
+    Utils.el('f-stage').value = 'all';
+    Utils.el('f-status').value = 'all';
+    Utils.el('f-rating').value = 'all';
+    State.setSellers([]);
+    Utils.el('seller-all').checked = true;
+    document.querySelectorAll('#seller-list input').forEach(cb => { cb.checked = false; });
+    this._updateSellerBtn();
+    this.apply();
+  },
+
+  toggleSellerMenu(e) {
+    e.stopPropagation();
+    const m = Utils.el('f-seller-menu');
+    m.style.display = m.style.display === 'none' ? '' : 'none';
+  },
+
+  onSellerAll() {
+    const checked = Utils.el('seller-all').checked;
+    State.setSellers([]);
+    document.querySelectorAll('#seller-list input').forEach(cb => { cb.checked = checked; });
+    this._updateSellerBtn();
+    this.apply();
+  },
+
+  onSellerCheck() {
+    const sel = [];
+    document.querySelectorAll('#seller-list input:checked').forEach(cb => sel.push(cb.value));
+    State.setSellers(sel);
+    Utils.el('seller-all').checked = sel.length === 0;
+    this._updateSellerBtn();
+    this.apply();
+  },
+
+  toggleMonthMenu(e) {
+    e.stopPropagation();
+    const m = Utils.el('f-month-menu');
+    m.style.display = m.style.display === 'none' ? '' : 'none';
+  },
+  onMonthAll() {
+    const checked = Utils.el('month-all').checked;
+    State.setMonths([]);
+    document.querySelectorAll('#month-list input').forEach(cb => { cb.checked = checked; });
+    this._updateMonthBtn();
+    this.apply();
+  },
+  onMonthCheck() {
+    const sel = [];
+    document.querySelectorAll('#month-list input:checked').forEach(cb => sel.push(parseInt(cb.value)));
+    State.setMonths(sel);
+    Utils.el('month-all').checked = sel.length === 0;
+    this._updateMonthBtn();
+    this.apply();
+  },
+  _updateMonthBtn() {
+    const n = State.getMonths().length;
+    Utils.setText('f-month-btn', n === 0 ? 'Todos os Meses' : `${n} mês(es)`);
+  },
+
+  toggleYearMenu(e) {
+    e.stopPropagation();
+    const m = Utils.el('f-year-menu');
+    m.style.display = m.style.display === 'none' ? '' : 'none';
+  },
+  onYearAll() {
+    const checked = Utils.el('year-all').checked;
+    State.setYears([]);
+    document.querySelectorAll('#year-list input').forEach(cb => { cb.checked = checked; });
+    this._updateYearBtn();
+    this.apply();
+  },
+  onYearCheck() {
+    const sel = [];
+    document.querySelectorAll('#year-list input:checked').forEach(cb => sel.push(parseInt(cb.value)));
+    State.setYears(sel);
+    Utils.el('year-all').checked = sel.length === 0;
+    this._updateYearBtn();
+    this.apply();
+  },
+  _updateYearBtn() {
+    const n = State.getYears().length;
+    Utils.setText('f-year-btn', n === 0 ? 'Todos os Anos' : `${n} ano(s)`);
+  },
+
+  toggleCMonthMenu(e) {
+    e.stopPropagation();
+    const m = Utils.el('f-cmonth-menu');
+    m.style.display = m.style.display === 'none' ? '' : 'none';
+  },
+  _resetCDate() {
+    State.setCMonths([]);
+    State.setCYears([2026]);
+    Utils.el('cmonth-all').checked = true;
+    Utils.el('cyear-all').checked  = false;
+    document.querySelectorAll('#cmonth-list input').forEach(cb => { cb.checked = false; });
+    document.querySelectorAll('#cyear-list input').forEach(cb => { cb.checked = cb.value === '2026'; });
+    this._updateCMonthBtn();
+    this._updateCYearBtn();
+  },
+  onCMonthAll() {
+    this._resetCDate();
+    this.apply();
+  },
+  onCMonthCheck() {
+    const sel = [];
+    document.querySelectorAll('#cmonth-list input:checked').forEach(cb => sel.push(parseInt(cb.value)));
+    State.setCMonths(sel);
+    Utils.el('cmonth-all').checked = sel.length === 0;
+    this._updateCMonthBtn();
+    this.apply();
+  },
+  _updateCMonthBtn() {
+    const n = State.getCMonths().length;
+    Utils.setText('f-cmonth-btn', n === 0 ? 'Todos os Meses' : `${n} mês(es)`);
+  },
+
+  toggleCYearMenu(e) {
+    e.stopPropagation();
+    const m = Utils.el('f-cyear-menu');
+    m.style.display = m.style.display === 'none' ? '' : 'none';
+  },
+  onCYearAll() {
+    this._resetCDate();
+    this.apply();
+  },
+  onCYearCheck() {
+    const sel = [];
+    document.querySelectorAll('#cyear-list input:checked').forEach(cb => sel.push(parseInt(cb.value)));
+    State.setCYears(sel);
+    Utils.el('cyear-all').checked = sel.length === 0;
+    this._updateCYearBtn();
+    this.apply();
+  },
+  _updateCYearBtn() {
+    const n = State.getCYears().length;
+    Utils.setText('f-cyear-btn', n === 0 ? 'Todos os Anos' : `${n} ano(s)`);
+  },
+
+  _updateSellerBtn() {
+    const n = State.getSellers().length;
+    Utils.setText('f-seller-btn', n === 0 ? 'Todos os Vendedores' : `${n} vendedor(es)`);
+  },
+
+  _buildSellerList(sellers) {
+    const cur = State.getSellers();
+    Utils.el('seller-list').innerHTML = sellers.map(s =>
+      `<label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer">
+        <input type="checkbox" value="${Utils.esc(s)}"${cur.includes(s) ? ' checked' : ''} onchange="Filters.onSellerCheck()"> ${Utils.esc(s)}
+      </label>`
+    ).join('');
+  },
+};
+
+// Close menus on outside click
+document.addEventListener('click', (e) => {
+  [
+    ['f-seller-menu','f-seller-btn'],
+    ['f-month-menu','f-month-btn'],
+    ['f-year-menu','f-year-btn'],
+    ['f-cmonth-menu','f-cmonth-btn'],
+    ['f-cyear-menu','f-cyear-btn'],
+    ['cmp-f-seller-menu','cmp-f-seller-btn'],
+    ['cmp-f-cmonth-menu','cmp-f-cmonth-btn'],
+    ['cmp-f-cyear-menu','cmp-f-cyear-btn'],
+  ].forEach(([mid, bid]) => {
+    const m = Utils.el(mid), b = Utils.el(bid);
+    if (m && b && !m.contains(e.target) && e.target !== b) m.style.display = 'none';
+  });
+});
