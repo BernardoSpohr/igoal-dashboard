@@ -368,9 +368,13 @@ tbody td:first-child{color:var(--text);font-weight:600;}
       <option value="oportunidades">Funil de Oportunidades</option>
       <option value="carteira">Carteira de Clientes</option>
     </select>
-<select class="filter-select" id="f-stage" onchange="Filters.apply()">
-  <option value="all">Todas as Etapas</option>
-</select>
+<div style="position:relative;display:inline-block">
+      <button class="filter-select" id="f-stage-btn" onclick="Filters.toggleStageMenu(event)" style="cursor:pointer;min-width:140px;text-align:left">Todas as Etapas</button>
+      <div id="f-stage-menu" style="display:none;position:absolute;top:100%;left:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px;z-index:400;min-width:200px;max-height:260px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" id="stage-all" checked onchange="Filters.onStageAll()"> Todas</label>
+        <div id="stage-list"></div>
+      </div>
+    </div>
     <select class="filter-select" id="f-status" onchange="Filters.apply()">
       <option value="all">Todos os Status</option>
       <option value="open">Abertos</option>

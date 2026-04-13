@@ -11,6 +11,7 @@ const State = (() => {
   let _selectedYears = [];
   let _selectedCMonths = [];
   let _selectedCYears = [];
+  let _selectedStages = [];
   let _lineMode = 'deals';
   let _autoTimer = null;
 
@@ -22,6 +23,7 @@ const State = (() => {
     getYears: () => _selectedYears,
     getCMonths: () => _selectedCMonths,
     getCYears: () => _selectedCYears,
+    getStages: () => _selectedStages,
     getLineMode: () => _lineMode,
 
     setRaw: (deals, tasks) => { _raw.deals = deals; _raw.tasks = tasks; },
@@ -31,6 +33,7 @@ const State = (() => {
     setYears: (arr) => { _selectedYears = arr; },
     setCMonths: (arr) => { _selectedCMonths = arr; },
     setCYears: (arr) => { _selectedCYears = arr; },
+    setStages: (arr) => { _selectedStages = arr; },
     setLineMode: (m) => { _lineMode = m; },
 
     startAutoRefresh: (fn) => {

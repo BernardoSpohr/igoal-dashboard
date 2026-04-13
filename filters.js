@@ -5,12 +5,15 @@
 ════════════════════════════════════════════ */
 const Filters = {
   onFunnelChange() {
-    Utils.el('f-stage').value = 'all';
+    State.setStages([]);
+    Utils.el('stage-all').checked = true;
+    document.querySelectorAll('#stage-list input').forEach(cb => { cb.checked = false; });
+    this._updateStageBtn();
     this.apply();
   },
 
   apply() {
-    const stage  = Utils.el('f-stage').value;
+    const selStages = State.getStages();
     const status = Utils.el('f-status').value;
     const rating = Utils.el('f-rating').value;
     const selMonths = State.getMonths();
@@ -55,7 +58,7 @@ const Filters = {
       if (!passesMonthYear && !passesCDate) return false;
 
       // Stage
-      if (stage !== 'all' && Deal.stage(d) !== stage) return false;
+      if (selStages.length > 0 && !selStages.includes(Deal.stage(d))) return false;
 
       // Status
       if (status === 'won'  && !Deal.isWon(d)) return false;
@@ -82,16 +85,12 @@ const Filters = {
     // Check active state BEFORE rebuilding dropdowns (values are still set)
     const isActive = this._isActive();
 
-    // Rebuild stage dropdown (preserve selection)
-    const stageSel = Utils.el('f-stage');
-    const curStage = stageSel.value;
+    // Rebuild stage checkbox list
     const allStages = [...new Set(State.getRaw().deals.map(Deal.stage).filter(Boolean))];
     const stages = allowedStages
       ? allStages.filter(s => funnel === 'carteira' ? s.includes('Carteira') : s.includes('Funil'))
       : allStages;
-    stageSel.innerHTML = '<option value="all">Todas as Etapas</option>' +
-      stages.map(s => `<option value="${Utils.esc(s)}">${Utils.esc(s)}</option>`).join('');
-    if (stages.includes(curStage)) stageSel.value = curStage;
+    this._buildStageList(stages);
 
     // Rebuild seller list
     const allSellers = [...new Set(State.getRaw().deals.map(Deal.seller).filter(Boolean))].sort();
@@ -109,7 +108,7 @@ const Filters = {
       || State.getCMonths().length > 0
       || State.getCYears().length  > 0
       || Utils.el('f-funnel').value  !== 'ambos'
-      || Utils.el('f-stage').value   !== 'all'
+      || State.getStages().length  > 0
       || Utils.el('f-status').value  !== 'all'
       || Utils.el('f-rating').value  !== 'all'
       || State.getSellers().length > 0;
@@ -133,7 +132,10 @@ const Filters = {
     this._updateMonthBtn();
     this._updateYearBtn();
     Utils.el('f-funnel').value = 'ambos';
-    Utils.el('f-stage').value = 'all';
+    State.setStages([]);
+    Utils.el('stage-all').checked = true;
+    document.querySelectorAll('#stage-list input').forEach(cb => { cb.checked = false; });
+    this._updateStageBtn();
     Utils.el('f-status').value = 'all';
     Utils.el('f-rating').value = 'all';
     State.setSellers([]);
@@ -270,6 +272,48 @@ const Filters = {
     Utils.setText('f-cyear-btn', n === 0 ? 'Todos os Anos' : `${n} ano(s)`);
   },
 
+  toggleStageMenu(e) {
+    e.stopPropagation();
+    const m = Utils.el('f-stage-menu');
+    m.style.display = m.style.display === 'none' ? '' : 'none';
+  },
+
+  onStageAll() {
+    State.setStages([]);
+    document.querySelectorAll('#stage-list input').forEach(cb => { cb.checked = false; });
+    Utils.el('stage-all').checked = true;
+    this._updateStageBtn();
+    this.apply();
+  },
+
+  onStageCheck() {
+    const sel = [];
+    document.querySelectorAll('#stage-list input:checked').forEach(cb => sel.push(cb.value));
+    State.setStages(sel);
+    Utils.el('stage-all').checked = sel.length === 0;
+    this._updateStageBtn();
+    this.apply();
+  },
+
+  _updateStageBtn() {
+    const n = State.getStages().length;
+    Utils.setText('f-stage-btn', n === 0 ? 'Todas as Etapas' : `${n} etapa(s)`);
+  },
+
+  _buildStageList(stages) {
+    const cur = State.getStages();
+    // Remove stages from list that no longer exist, keep valid selections
+    const valid = cur.filter(s => stages.includes(s));
+    if (valid.length !== cur.length) State.setStages(valid);
+
+    Utils.el('stage-list').innerHTML = stages.map(s =>
+      `<label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer">
+        <input type="checkbox" value="${Utils.esc(s)}"${valid.includes(s) ? ' checked' : ''} onchange="Filters.onStageCheck()"> ${Utils.esc(s)}
+      </label>`
+    ).join('');
+    this._updateStageBtn();
+  },
+
   _updateSellerBtn() {
     const n = State.getSellers().length;
     Utils.setText('f-seller-btn', n === 0 ? 'Todos os Vendedores' : `${n} vendedor(es)`);
@@ -293,6 +337,7 @@ document.addEventListener('click', (e) => {
     ['f-year-menu','f-year-btn'],
     ['f-cmonth-menu','f-cmonth-btn'],
     ['f-cyear-menu','f-cyear-btn'],
+    ['f-stage-menu','f-stage-btn'],
     ['cmp-f-seller-menu','cmp-f-seller-btn'],
     ['cmp-f-cmonth-menu','cmp-f-cmonth-btn'],
     ['cmp-f-cyear-menu','cmp-f-cyear-btn'],
