@@ -207,6 +207,7 @@ const Tasks = (() => {
       const total = _allTasks().length;
       Utils.setText('tasks-count-badge', `${tasks.length} tarefa${tasks.length !== 1 ? 's' : ''}`);
       Utils.setText('tasks-nav-count', `(${total})`);
+      Utils.setText('tasks-table-count', `(${tasks.length})`);
 
       if (tasks.length === 0) {
         Utils.hide('tasks-table-wrap');
