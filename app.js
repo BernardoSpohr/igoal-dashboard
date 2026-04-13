@@ -279,7 +279,16 @@ const API = {
   },
 
   async fetchTasks() {
-    return this.get('tasks').catch(() => ({}));
+    const all = [];
+    let page = 1;
+    while (page <= 50) {
+      const res = await this.get(`tasks&page=${page}&limit=200`).catch(() => ({}));
+      const batch = res.tasks || [];
+      all.push(...batch);
+      if (!batch.length || !res.has_more) break;
+      page++;
+    }
+    return { tasks: all };
   },
 };
 
