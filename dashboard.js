@@ -28,22 +28,35 @@ const Dashboard = {
       return;
     }
 
-    const [page1, tasks] = await Promise.all([API.fetchPage(1), API.fetchTasks()]);
-    State.setRaw(page1.deals || [], tasks.tasks || []);
-    Cache.save(State.getRaw().deals, State.getRaw().tasks);
+    // Show app as soon as first page of deals is ready — don't wait for tasks
+    const page1 = await API.fetchPage(1);
+    State.setRaw(page1.deals || [], []);
     this._showApp();
     if (page1.has_more) this._fetchRemaining(2);
+    // Fetch tasks in background after UI is visible
+    this._fetchTasksBackground();
   },
 
   async _fetchBackground() {
     try {
-      const [page1, tasks] = await Promise.all([API.fetchPage(1), API.fetchTasks()]);
+      const page1 = await API.fetchPage(1);
       const raw = State.getRaw();
       if (page1.deals?.length) raw.deals = page1.deals;
-      if (tasks.tasks?.length) raw.tasks = tasks.tasks;
       Cache.save(raw.deals, raw.tasks);
       Filters.apply();
       if (page1.has_more) this._fetchRemaining(2);
+      this._fetchTasksBackground();
+    } catch (_) {}
+  },
+
+  async _fetchTasksBackground() {
+    try {
+      const tasks = await API.fetchTasks();
+      if (tasks.tasks?.length) {
+        State.getRaw().tasks = tasks.tasks;
+        Cache.save(State.getRaw().deals, tasks.tasks);
+        Tasks.rebuildSellers();
+      }
     } catch (_) {}
   },
 
@@ -74,15 +87,14 @@ const Dashboard = {
     btn.classList.add('spin');
     try {
       Cache.clear();
-      const [page1, tasks] = await Promise.all([API.fetchPage(1), API.fetchTasks()]);
+      const page1 = await API.fetchPage(1);
       const raw = State.getRaw();
       if (page1.deals?.length) raw.deals = page1.deals;
-      if (tasks.tasks?.length) raw.tasks = tasks.tasks;
       Cache.save(raw.deals, raw.tasks);
       Filters.apply();
-      Tasks.rebuildSellers();
       UI.setStatus(true);
       if (page1.has_more) this._fetchRemaining(2);
+      this._fetchTasksBackground();
     } catch (err) {
       console.error('[Dashboard.refresh]', err);
       UI.setStatus(false);
