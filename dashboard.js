@@ -53,12 +53,16 @@ const Dashboard = {
   },
 
   async _fetchTasksBackground() {
+    const allowed = CONFIG.TASK_SELLERS;
+    const _seller = (t) => (t.users?.[0]?.name || t.user?.name || t.responsible_name || '').toLowerCase();
+    const _keep   = (t) => allowed.some(n => _seller(t).includes(n));
+
     try {
       let page = 1;
       while (page <= 50) {
         const res = await API.get(`tasks&page=${page}&limit=200`).catch(() => ({}));
-        const batch = res.tasks || [];
-        if (!batch.length) break;
+        const batch = (res.tasks || []).filter(_keep);
+        if (!batch.length && !(res.tasks?.length)) break;
         const raw = State.getRaw();
         raw.tasks = page === 1 ? batch : raw.tasks.concat(batch);
         Tasks.rebuildSellers();
