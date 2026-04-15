@@ -47,12 +47,9 @@ const Tasks = (() => {
     return dt.toLocaleDateString('pt-BR');
   }
 
-  // Sellers come from both tasks AND deals so the list is always populated
   function _buildSellerList() {
     const all = _allTasks();
-    const taskSellers = all.map(_taskSeller);
-    const dealSellers = State.getRaw().deals.map(Deal.seller);
-    const sellers = [...new Set([...taskSellers, ...dealSellers].filter(Boolean))].sort();
+    const sellers = [...new Set(all.map(_taskSeller).filter(Boolean))].sort();
     const list = Utils.el('tasks-seller-list');
     if (!list) return;
     list.innerHTML = sellers.map(s =>
