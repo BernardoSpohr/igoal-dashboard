@@ -8,7 +8,7 @@ const Comparison = (() => {
   let _mode = 'deals';
   let _tab  = 'a';
   let _dealsA = [], _dealsB = [];
-  let _sellers = [], _cMonths = [], _cYears = [], _stages = [], _statuses = [], _ratings = [];
+  let _sellers = [], _stages = [], _statuses = [], _ratings = [];
   const MS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const CA = '#2563EB', CB = '#7C3AED';
   const BGA = 'rgba(37,99,235,0.08)', BGB = 'rgba(124,58,237,0.08)';
@@ -290,49 +290,6 @@ const Comparison = (() => {
       _renderTable(tab === 'a' ? _dealsA : _dealsB);
     },
 
-    toggleCMonthMenu(e) {
-      e.stopPropagation();
-      const m = Utils.el('cmp-f-cmonth-menu');
-      m.style.display = m.style.display === 'none' ? '' : 'none';
-    },
-    _resetCDate() {
-      _cMonths = []; _cYears = [];
-      Utils.el('cmp-cmonth-all').checked = true;
-      Utils.el('cmp-cyear-all').checked  = true;
-      document.querySelectorAll('#cmp-cmonth-list input').forEach(cb => { cb.checked = false; });
-      document.querySelectorAll('#cmp-cyear-list input').forEach(cb => { cb.checked = false; });
-      Utils.setText('cmp-f-cmonth-btn', 'Todos os Meses');
-      Utils.setText('cmp-f-cyear-btn', 'Todos os Anos');
-    },
-    onCMonthAll() {
-      this._resetCDate();
-      this.render();
-    },
-    onCMonthCheck() {
-      _cMonths = [];
-      document.querySelectorAll('#cmp-cmonth-list input:checked').forEach(cb => _cMonths.push(parseInt(cb.value)));
-      Utils.el('cmp-cmonth-all').checked = _cMonths.length === 0;
-      Utils.setText('cmp-f-cmonth-btn', _cMonths.length === 0 ? 'Todos os Meses' : `${_cMonths.length} mês(es)`);
-      this.render();
-    },
-
-    toggleCYearMenu(e) {
-      e.stopPropagation();
-      const m = Utils.el('cmp-f-cyear-menu');
-      m.style.display = m.style.display === 'none' ? '' : 'none';
-    },
-    onCYearAll() {
-      this._resetCDate();
-      this.render();
-    },
-    onCYearCheck() {
-      _cYears = [];
-      document.querySelectorAll('#cmp-cyear-list input:checked').forEach(cb => _cYears.push(parseInt(cb.value)));
-      Utils.el('cmp-cyear-all').checked = _cYears.length === 0;
-      Utils.setText('cmp-f-cyear-btn', _cYears.length === 0 ? 'Todos os Anos' : `${_cYears.length} ano(s)`);
-      this.render();
-    },
-
     toggleRatingMenu(e) {
       e.stopPropagation();
       const m = Utils.el('cmp-f-rating-menu');
@@ -405,13 +362,7 @@ const Comparison = (() => {
     },
 
     clearFilters() {
-      _cMonths = []; _cYears = []; _stages = []; _statuses = [];
-      Utils.el('cmp-cmonth-all').checked = true;
-      Utils.el('cmp-cyear-all').checked  = true;
-      document.querySelectorAll('#cmp-cmonth-list input').forEach(cb => { cb.checked = false; });
-      document.querySelectorAll('#cmp-cyear-list input').forEach(cb => { cb.checked = false; });
-      Utils.setText('cmp-f-cmonth-btn', 'Todos os Meses');
-      Utils.setText('cmp-f-cyear-btn', 'Todos os Anos');
+      _stages = []; _statuses = [];
       Utils.el('cmp-f-funnel').value = 'ambos';
       Utils.el('cmp-stage-all').checked = true;
       document.querySelectorAll('#cmp-stage-list input').forEach(cb => { cb.checked = false; });
@@ -507,9 +458,7 @@ const Comparison = (() => {
       _renderOrigins('cmp-origin-b', sB.sourceMap, sB.total);
       _renderTable(_tab === 'a' ? _dealsA : _dealsB);
 
-      const active = _cMonths.length > 0
-        || _cYears.length > 0
-        || Utils.el('cmp-f-funnel').value !== 'ambos'
+      const active = Utils.el('cmp-f-funnel').value !== 'ambos'
         || _stages.length > 0
         || _statuses.length > 0
         || _ratings.length > 0
