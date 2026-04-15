@@ -15,7 +15,7 @@ const Filters = {
   apply() {
     const selStages   = State.getStages();
     const selStatuses = State.getStatuses();
-    const rating = Utils.el('f-rating').value;
+    const selRatings  = State.getRatings();
     const selMonths = State.getMonths();
     const selYears  = State.getYears();
 
@@ -63,7 +63,7 @@ const Filters = {
       if (sellers.length > 0 && !sellers.includes(Deal.seller(d))) return false;
 
       // Rating
-      if (rating !== 'all' && String(d.rating) !== rating) return false;
+      if (selRatings.length > 0 && !selRatings.includes(String(d.rating))) return false;
 
       return true;
     });
@@ -102,7 +102,7 @@ const Filters = {
       || Utils.el('f-funnel').value !== 'ambos'
       || State.getStages().length   > 0
       || State.getStatuses().length > 0
-      || Utils.el('f-rating').value !== 'all'
+      || State.getRatings().length  > 0
       || State.getSellers().length  > 0;
   },
 
@@ -124,7 +124,10 @@ const Filters = {
     Utils.el('status-all').checked = true;
     document.querySelectorAll('#status-list input').forEach(cb => { cb.checked = false; });
     this._updateStatusBtn();
-    Utils.el('f-rating').value = 'all';
+    State.setRatings([]);
+    Utils.el('rating-all').checked = true;
+    document.querySelectorAll('#rating-list input').forEach(cb => { cb.checked = false; });
+    this._updateRatingBtn();
     State.setSellers([]);
     Utils.el('seller-all').checked = true;
     document.querySelectorAll('#seller-list input').forEach(cb => { cb.checked = false; });
@@ -203,6 +206,35 @@ const Filters = {
   _updateYearBtn() {
     const n = State.getYears().length;
     Utils.setText('f-year-btn', n === 0 ? 'Todos os Anos' : `${n} ano(s)`);
+  },
+
+  toggleRatingMenu(e) {
+    e.stopPropagation();
+    const m = Utils.el('f-rating-menu');
+    m.style.display = m.style.display === 'none' ? '' : 'none';
+  },
+
+  onRatingAll() {
+    State.setRatings([]);
+    document.querySelectorAll('#rating-list input').forEach(cb => { cb.checked = false; });
+    Utils.el('rating-all').checked = true;
+    this._updateRatingBtn();
+    this.apply();
+  },
+
+  onRatingCheck() {
+    const sel = [];
+    document.querySelectorAll('#rating-list input:checked').forEach(cb => sel.push(cb.value));
+    State.setRatings(sel);
+    Utils.el('rating-all').checked = sel.length === 0;
+    this._updateRatingBtn();
+    this.apply();
+  },
+
+  _updateRatingBtn() {
+    const sel = State.getRatings();
+    const stars = { '1':'★','2':'★★','3':'★★★','4':'★★★★','5':'★★★★★' };
+    Utils.setText('f-rating-btn', sel.length === 0 ? 'Qualquer Estrela' : sel.map(s => stars[s]).join(', '));
   },
 
   toggleStatusMenu(e) {
@@ -297,8 +329,10 @@ document.addEventListener('click', (e) => {
     ['f-seller-menu','f-seller-btn'],
     ['f-month-menu','f-month-btn'],
     ['f-year-menu','f-year-btn'],
+    ['f-rating-menu','f-rating-btn'],
     ['f-status-menu','f-status-btn'],
     ['f-stage-menu','f-stage-btn'],
+    ['cmp-f-rating-menu','cmp-f-rating-btn'],
     ['cmp-f-stage-menu','cmp-f-stage-btn'],
     ['cmp-f-status-menu','cmp-f-status-btn'],
     ['cmp-f-seller-menu','cmp-f-seller-btn'],

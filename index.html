@@ -354,14 +354,19 @@ tbody td:first-child{color:var(--text);font-weight:600;}
         </div>
       </div>
     </div>
-    <select class="filter-select" id="f-rating" onchange="Filters.apply()">
-      <option value="all">Qualquer estrela</option>
-      <option value="1">★ 1</option>
-      <option value="2">★★ 2</option>
-      <option value="3">★★★ 3</option>
-      <option value="4">★★★★ 4</option>
-      <option value="5">★★★★★ 5</option>
-    </select>
+    <div style="position:relative;display:inline-block">
+      <button class="filter-select" id="f-rating-btn" onclick="Filters.toggleRatingMenu(event)" style="cursor:pointer;min-width:130px;text-align:left">Qualquer Estrela</button>
+      <div id="f-rating-menu" style="display:none;position:absolute;top:100%;left:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px;z-index:300;min-width:140px;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" id="rating-all" checked onchange="Filters.onRatingAll()"> Todas</label>
+        <div id="rating-list">
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="1" onchange="Filters.onRatingCheck()"> ★ 1</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="2" onchange="Filters.onRatingCheck()"> ★★ 2</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="3" onchange="Filters.onRatingCheck()"> ★★★ 3</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="4" onchange="Filters.onRatingCheck()"> ★★★★ 4</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="5" onchange="Filters.onRatingCheck()"> ★★★★★ 5</label>
+        </div>
+      </div>
+    </div>
     <div style="position:relative;display:inline-block">
       <button class="filter-select" id="f-seller-btn" onclick="Filters.toggleSellerMenu(event)" style="cursor:pointer;min-width:160px;text-align:left">Todos os Vendedores</button>
       <div id="f-seller-menu" style="display:none;position:absolute;top:100%;left:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px;z-index:200;min-width:200px;max-height:240px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
@@ -590,12 +595,19 @@ tbody td:first-child{color:var(--text);font-weight:600;}
         </div>
       </div>
     </div>
-    <select class="filter-select" id="cmp-f-rating" onchange="Comparison.render()">
-      <option value="all">Qualquer estrela</option>
-      <option value="1">★ 1</option><option value="2">★★ 2</option>
-      <option value="3">★★★ 3</option><option value="4">★★★★ 4</option>
-      <option value="5">★★★★★ 5</option>
-    </select>
+    <div style="position:relative;display:inline-block">
+      <button class="filter-select" id="cmp-f-rating-btn" onclick="Comparison.toggleRatingMenu(event)" style="cursor:pointer;min-width:130px;text-align:left">Qualquer Estrela</button>
+      <div id="cmp-f-rating-menu" style="display:none;position:absolute;top:100%;left:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px;z-index:400;min-width:140px;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" id="cmp-rating-all" checked onchange="Comparison.onRatingAll()"> Todas</label>
+        <div id="cmp-rating-list">
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="1" onchange="Comparison.onRatingCheck()"> ★ 1</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="2" onchange="Comparison.onRatingCheck()"> ★★ 2</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="3" onchange="Comparison.onRatingCheck()"> ★★★ 3</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="4" onchange="Comparison.onRatingCheck()"> ★★★★ 4</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="5" onchange="Comparison.onRatingCheck()"> ★★★★★ 5</label>
+        </div>
+      </div>
+    </div>
     <div style="position:relative;display:inline-block">
       <button class="filter-select" id="cmp-f-seller-btn" onclick="Comparison.toggleSellerMenu(event)" style="cursor:pointer;min-width:160px;text-align:left">Todos os Vendedores</button>
       <div id="cmp-f-seller-menu" style="display:none;position:absolute;top:100%;left:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px;z-index:400;min-width:200px;max-height:240px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
@@ -798,17 +810,17 @@ tbody td:first-child{color:var(--text);font-weight:600;}
   </div>
 </div>
 
-<script src="config.js?v=11"></script>
-<script src="state.js?v=11"></script>
-<script src="utils.js?v=11"></script>
-<script src="auth.js?v=11"></script>
-<script src="api.js?v=11"></script>
-<script src="dashboard.js?v=11"></script>
-<script src="filters.js?v=11"></script>
-<script src="charts.js?v=11"></script>
-<script src="ui.js?v=11"></script>
-<script src="comparison.js?v=11"></script>
-<script src="tasks.js?v=11"></script>
-<script src="boot.js?v=11"></script>
+<script src="config.js?v=12"></script>
+<script src="state.js?v=12"></script>
+<script src="utils.js?v=12"></script>
+<script src="auth.js?v=12"></script>
+<script src="api.js?v=12"></script>
+<script src="dashboard.js?v=12"></script>
+<script src="filters.js?v=12"></script>
+<script src="charts.js?v=12"></script>
+<script src="ui.js?v=12"></script>
+<script src="comparison.js?v=12"></script>
+<script src="tasks.js?v=12"></script>
+<script src="boot.js?v=12"></script>
 </body>
 </html>

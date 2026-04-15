@@ -11,6 +11,7 @@ const State = (() => {
   let _selectedYears = [];
   let _selectedStages = [];
   let _selectedStatuses = [];
+  let _selectedRatings = [];
   let _lineMode = 'deals';
   let _autoTimer = null;
 
@@ -22,6 +23,7 @@ const State = (() => {
     getYears: () => _selectedYears,
     getStages: () => _selectedStages,
     getStatuses: () => _selectedStatuses,
+    getRatings: () => _selectedRatings,
     getLineMode: () => _lineMode,
 
     setRaw: (deals, tasks) => { _raw.deals = deals; _raw.tasks = tasks; },
@@ -31,6 +33,7 @@ const State = (() => {
     setYears: (arr) => { _selectedYears = arr; },
     setStages: (arr) => { _selectedStages = arr; },
     setStatuses: (arr) => { _selectedStatuses = arr; },
+    setRatings: (arr) => { _selectedRatings = arr; },
     setLineMode: (m) => { _lineMode = m; },
 
     startAutoRefresh: (fn) => {

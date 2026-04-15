@@ -8,7 +8,7 @@ const Comparison = (() => {
   let _mode = 'deals';
   let _tab  = 'a';
   let _dealsA = [], _dealsB = [];
-  let _sellers = [], _cMonths = [], _cYears = [], _stages = [], _statuses = [];
+  let _sellers = [], _cMonths = [], _cYears = [], _stages = [], _statuses = [], _ratings = [];
   const MS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const CA = '#2563EB', CB = '#7C3AED';
   const BGA = 'rgba(37,99,235,0.08)', BGB = 'rgba(124,58,237,0.08)';
@@ -35,7 +35,6 @@ const Comparison = (() => {
 
   function _applyFilters(deals) {
     const funnel = Utils.el('cmp-f-funnel').value;
-    const rating = Utils.el('cmp-f-rating').value;
     const allowedStages = funnel === 'oportunidades'
       ? (d) => Deal.stage(d).includes('Funil')
       : funnel === 'carteira'
@@ -56,7 +55,7 @@ const Comparison = (() => {
         if (!ok) return false;
       }
       if (_sellers.length > 0 && !_sellers.includes(Deal.seller(d))) return false;
-      if (rating !== 'all' && String(d.rating) !== rating) return false;
+      if (_ratings.length > 0 && !_ratings.includes(String(d.rating))) return false;
       return true;
     });
   }
@@ -334,6 +333,33 @@ const Comparison = (() => {
       this.render();
     },
 
+    toggleRatingMenu(e) {
+      e.stopPropagation();
+      const m = Utils.el('cmp-f-rating-menu');
+      m.style.display = m.style.display === 'none' ? '' : 'none';
+    },
+
+    onRatingAll() {
+      _ratings = [];
+      document.querySelectorAll('#cmp-rating-list input').forEach(cb => { cb.checked = false; });
+      Utils.el('cmp-rating-all').checked = true;
+      this._updateRatingBtn();
+      this.render();
+    },
+
+    onRatingCheck() {
+      _ratings = [];
+      document.querySelectorAll('#cmp-rating-list input:checked').forEach(cb => _ratings.push(cb.value));
+      Utils.el('cmp-rating-all').checked = _ratings.length === 0;
+      this._updateRatingBtn();
+      this.render();
+    },
+
+    _updateRatingBtn() {
+      const stars = { '1':'★','2':'★★','3':'★★★','4':'★★★★','5':'★★★★★' };
+      Utils.setText('cmp-f-rating-btn', _ratings.length === 0 ? 'Qualquer Estrela' : _ratings.map(s => stars[s]).join(', '));
+    },
+
     toggleStageMenu(e) {
       e.stopPropagation();
       const m = Utils.el('cmp-f-stage-menu');
@@ -393,7 +419,10 @@ const Comparison = (() => {
       Utils.el('cmp-status-all').checked = true;
       document.querySelectorAll('#cmp-status-list input').forEach(cb => { cb.checked = false; });
       _updateStatusBtn();
-      Utils.el('cmp-f-rating').value = 'all';
+      _ratings = [];
+      Utils.el('cmp-rating-all').checked = true;
+      document.querySelectorAll('#cmp-rating-list input').forEach(cb => { cb.checked = false; });
+      this._updateRatingBtn();
       _sellers = [];
       Utils.el('cmp-seller-all').checked = true;
       document.querySelectorAll('#cmp-seller-list input').forEach(cb => { cb.checked = false; });
@@ -483,7 +512,7 @@ const Comparison = (() => {
         || Utils.el('cmp-f-funnel').value !== 'ambos'
         || _stages.length > 0
         || _statuses.length > 0
-        || Utils.el('cmp-f-rating').value !== 'all'
+        || _ratings.length > 0
         || _sellers.length > 0;
       Utils.el('cmp-btn-clear').style.display = active ? 'inline-flex' : 'none';
     },
