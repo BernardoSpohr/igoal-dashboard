@@ -260,6 +260,7 @@ const Comparison = (() => {
         <td><span class="tag ${cls}">${lbl}</span></td>
         <td>${Utils.esc(Deal.seller(d) || '—')}</td>
         <td class="td-mono">${Utils.fmtDate(d.created_at)}</td>
+        <td class="td-mono">${d.closed_at ? Utils.fmtDate(d.closed_at) : '—'}</td>
       </tr>`;
     }).join('');
   }

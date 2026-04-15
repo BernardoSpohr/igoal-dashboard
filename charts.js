@@ -340,7 +340,6 @@ const Renderer = {
       const isLost = Deal.isLost(d);
       const lbl    = isWon ? 'Vendido' : isLost ? 'Perdido' : Deal.isPaused(d) ? 'Pausado' : 'Em Andamento';
       const cls    = isWon ? 't-won'   : isLost ? 't-lost'  : Deal.isPaused(d) ? 't-paused' : 't-open';
-      const dt     = Utils.fmtDate(d.created_at);
       const seller = Utils.esc(Deal.seller(d) || '—');
       return `<tr onclick="UI.drillDeal(${i})">
         <td>${Utils.esc(d.name || '—')}</td>
@@ -348,7 +347,8 @@ const Renderer = {
         <td>${Utils.esc(stage)}</td>
         <td><span class="tag ${cls}">${lbl}</span></td>
         <td>${seller}</td>
-        <td class="td-mono">${dt}</td>
+        <td class="td-mono">${Utils.fmtDate(d.created_at)}</td>
+        <td class="td-mono">${d.closed_at ? Utils.fmtDate(d.closed_at) : '—'}</td>
       </tr>`;
     }).join('');
 
