@@ -23,7 +23,8 @@ const Tasks = (() => {
   }
 
   function _taskStatus(t) {
-    if (t.done || t.status === 'done' || t.status === 'completed') return 'done';
+    if (t.markup === 'done' || t.done === true) return 'done';
+    if (t.markup === 'past') return 'overdue';
     const due = t.due_date || t.date;
     if (due && new Date(due) < new Date(new Date().toDateString())) return 'overdue';
     return 'pending';
