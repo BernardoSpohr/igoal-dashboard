@@ -38,7 +38,7 @@ const Comparison = (() => {
     const allowedStages = funnel === 'oportunidades'
       ? (d) => Deal.stage(d).includes('Funil')
       : funnel === 'carteira'
-        ? (d) => Deal.stage(d).includes('Carteira') || Deal.isWon(d)
+        ? (d) => Deal.stage(d).includes('Carteira')
         : null;
 
     return deals.filter(d => {
