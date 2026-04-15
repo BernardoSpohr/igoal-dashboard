@@ -10,6 +10,7 @@ const State = (() => {
   let _selectedMonths = [];
   let _selectedYears = [];
   let _selectedStages = [];
+  let _selectedStatuses = [];
   let _lineMode = 'deals';
   let _autoTimer = null;
 
@@ -20,6 +21,7 @@ const State = (() => {
     getMonths: () => _selectedMonths,
     getYears: () => _selectedYears,
     getStages: () => _selectedStages,
+    getStatuses: () => _selectedStatuses,
     getLineMode: () => _lineMode,
 
     setRaw: (deals, tasks) => { _raw.deals = deals; _raw.tasks = tasks; },
@@ -28,6 +30,7 @@ const State = (() => {
     setMonths: (arr) => { _selectedMonths = arr; },
     setYears: (arr) => { _selectedYears = arr; },
     setStages: (arr) => { _selectedStages = arr; },
+    setStatuses: (arr) => { _selectedStatuses = arr; },
     setLineMode: (m) => { _lineMode = m; },
 
     startAutoRefresh: (fn) => {

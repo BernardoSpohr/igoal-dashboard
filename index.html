@@ -341,14 +341,19 @@ tbody td:first-child{color:var(--text);font-weight:600;}
         <div id="stage-list"></div>
       </div>
     </div>
-    <select class="filter-select" id="f-status" onchange="Filters.apply()">
-      <option value="all">Todos os Status</option>
-      <option value="open">Em Andamento</option>
-      <option value="won">Vendidos</option>
-      <option value="lost">Perdidos</option>
-      <option value="paused">Pausado</option>
-      <option value="not-paused">Não Pausado</option>
-    </select>
+    <div style="position:relative;display:inline-block">
+      <button class="filter-select" id="f-status-btn" onclick="Filters.toggleStatusMenu(event)" style="cursor:pointer;min-width:140px;text-align:left">Todos os Status</button>
+      <div id="f-status-menu" style="display:none;position:absolute;top:100%;left:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px;z-index:300;min-width:170px;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" id="status-all" checked onchange="Filters.onStatusAll()"> Todos</label>
+        <div id="status-list">
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="open" onchange="Filters.onStatusCheck()"> Em Andamento</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="won" onchange="Filters.onStatusCheck()"> Vendidos</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="lost" onchange="Filters.onStatusCheck()"> Perdidos</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="paused" onchange="Filters.onStatusCheck()"> Pausado</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="not-paused" onchange="Filters.onStatusCheck()"> Não Pausado</label>
+        </div>
+      </div>
+    </div>
     <select class="filter-select" id="f-rating" onchange="Filters.apply()">
       <option value="all">Qualquer estrela</option>
       <option value="1">★ 1</option>
@@ -779,17 +784,17 @@ tbody td:first-child{color:var(--text);font-weight:600;}
   </div>
 </div>
 
-<script src="config.js?v=5"></script>
-<script src="state.js?v=5"></script>
-<script src="utils.js?v=5"></script>
-<script src="auth.js?v=5"></script>
-<script src="api.js?v=5"></script>
-<script src="dashboard.js?v=5"></script>
-<script src="filters.js?v=5"></script>
-<script src="charts.js?v=5"></script>
-<script src="ui.js?v=5"></script>
-<script src="comparison.js?v=5"></script>
-<script src="tasks.js?v=5"></script>
-<script src="boot.js?v=5"></script>
+<script src="config.js?v=6"></script>
+<script src="state.js?v=6"></script>
+<script src="utils.js?v=6"></script>
+<script src="auth.js?v=6"></script>
+<script src="api.js?v=6"></script>
+<script src="dashboard.js?v=6"></script>
+<script src="filters.js?v=6"></script>
+<script src="charts.js?v=6"></script>
+<script src="ui.js?v=6"></script>
+<script src="comparison.js?v=6"></script>
+<script src="tasks.js?v=6"></script>
+<script src="boot.js?v=6"></script>
 </body>
 </html>

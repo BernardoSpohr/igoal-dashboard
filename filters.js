@@ -13,8 +13,8 @@ const Filters = {
   },
 
   apply() {
-    const selStages = State.getStages();
-    const status = Utils.el('f-status').value;
+    const selStages   = State.getStages();
+    const selStatuses = State.getStatuses();
     const rating = Utils.el('f-rating').value;
     const selMonths = State.getMonths();
     const selYears  = State.getYears();
@@ -47,12 +47,17 @@ const Filters = {
       // Stage
       if (selStages.length > 0 && !selStages.includes(Deal.stage(d))) return false;
 
-      // Status
-      if (status === 'won'      && !Deal.isWon(d))                         return false;
-      if (status === 'lost'     && !Deal.isLost(d))                        return false;
-      if (status === 'open'     && (!Deal.isOpen(d) || Deal.isPaused(d)))  return false;
-      if (status === 'paused'   && !Deal.isPaused(d))                      return false;
-      if (status === 'not-paused' && Deal.isPaused(d))                     return false;
+      // Status (multi-select: deal passa se corresponder a pelo menos um selecionado)
+      if (selStatuses.length > 0) {
+        const ok = selStatuses.some(s =>
+          s === 'won'       ? Deal.isWon(d) :
+          s === 'lost'      ? Deal.isLost(d) :
+          s === 'open'      ? (Deal.isOpen(d) && !Deal.isPaused(d)) :
+          s === 'paused'    ? Deal.isPaused(d) :
+          s === 'not-paused'? !Deal.isPaused(d) : false
+        );
+        if (!ok) return false;
+      }
 
       // Sellers
       if (sellers.length > 0 && !sellers.includes(Deal.seller(d))) return false;
@@ -92,13 +97,13 @@ const Filters = {
   },
 
   _isActive() {
-    return State.getMonths().length  > 0
-      || State.getYears().length   > 0
-      || Utils.el('f-funnel').value  !== 'ambos'
-      || State.getStages().length  > 0
-      || Utils.el('f-status').value  !== 'all'
-      || Utils.el('f-rating').value  !== 'all'
-      || State.getSellers().length > 0;
+    return State.getMonths().length   > 0
+      || State.getYears().length    > 0
+      || Utils.el('f-funnel').value !== 'ambos'
+      || State.getStages().length   > 0
+      || State.getStatuses().length > 0
+      || Utils.el('f-rating').value !== 'all'
+      || State.getSellers().length  > 0;
   },
 
   clear() {
@@ -115,7 +120,10 @@ const Filters = {
     Utils.el('stage-all').checked = true;
     document.querySelectorAll('#stage-list input').forEach(cb => { cb.checked = false; });
     this._updateStageBtn();
-    Utils.el('f-status').value = 'all';
+    State.setStatuses([]);
+    Utils.el('status-all').checked = true;
+    document.querySelectorAll('#status-list input').forEach(cb => { cb.checked = false; });
+    this._updateStatusBtn();
     Utils.el('f-rating').value = 'all';
     State.setSellers([]);
     Utils.el('seller-all').checked = true;
@@ -197,6 +205,35 @@ const Filters = {
     Utils.setText('f-year-btn', n === 0 ? 'Todos os Anos' : `${n} ano(s)`);
   },
 
+  toggleStatusMenu(e) {
+    e.stopPropagation();
+    const m = Utils.el('f-status-menu');
+    m.style.display = m.style.display === 'none' ? '' : 'none';
+  },
+
+  onStatusAll() {
+    State.setStatuses([]);
+    document.querySelectorAll('#status-list input').forEach(cb => { cb.checked = false; });
+    Utils.el('status-all').checked = true;
+    this._updateStatusBtn();
+    this.apply();
+  },
+
+  onStatusCheck() {
+    const sel = [];
+    document.querySelectorAll('#status-list input:checked').forEach(cb => sel.push(cb.value));
+    State.setStatuses(sel);
+    Utils.el('status-all').checked = sel.length === 0;
+    this._updateStatusBtn();
+    this.apply();
+  },
+
+  _updateStatusBtn() {
+    const labels = { open: 'Em Andamento', won: 'Vendidos', lost: 'Perdidos', paused: 'Pausado', 'not-paused': 'Não Pausado' };
+    const sel = State.getStatuses();
+    Utils.setText('f-status-btn', sel.length === 0 ? 'Todos os Status' : sel.map(s => labels[s] || s).join(', '));
+  },
+
   toggleStageMenu(e) {
     e.stopPropagation();
     const m = Utils.el('f-stage-menu');
@@ -260,6 +297,7 @@ document.addEventListener('click', (e) => {
     ['f-seller-menu','f-seller-btn'],
     ['f-month-menu','f-month-btn'],
     ['f-year-menu','f-year-btn'],
+    ['f-status-menu','f-status-btn'],
     ['f-stage-menu','f-stage-btn'],
     ['cmp-f-seller-menu','cmp-f-seller-btn'],
     ['cmp-f-cmonth-menu','cmp-f-cmonth-btn'],
