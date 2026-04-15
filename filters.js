@@ -21,11 +21,9 @@ const Filters = {
 
     const sellers = State.getSellers();
     const funnel = Utils.el('f-funnel').value;
-    const allowedStages = funnel === 'oportunidades'
-      ? (d) => Deal.stage(d).includes('Funil')
-      : funnel === 'carteira'
-        ? (d) => Deal.stage(d).includes('Carteira')
-        : null;
+    const allowedStages = funnel === 'carteira'
+      ? (d) => Deal.stage(d).includes('Carteira')
+      : (d) => Deal.stage(d).includes('Funil');
 
     const filtered = State.getRaw().deals.filter((d) => {
       // Funnel
@@ -102,7 +100,7 @@ const Filters = {
   _isActive() {
     return State.getMonths().length   > 0
       || State.getYears().length    > 0
-      || Utils.el('f-funnel').value !== 'ambos'
+      || Utils.el('f-funnel').value === 'carteira'
       || State.getStages().length   > 0
       || State.getStatuses().length > 0
       || State.getRatings().length  > 0
@@ -118,7 +116,7 @@ const Filters = {
     document.querySelectorAll('#year-list input').forEach(cb => { cb.checked = cb.value === '2026'; });
     this._updateMonthBtn();
     this._updateYearBtn();
-    Utils.el('f-funnel').value = 'ambos';
+    Utils.el('f-funnel').value = 'oportunidades';
     State.setStages([]);
     Utils.el('stage-all').checked = true;
     document.querySelectorAll('#stage-list input').forEach(cb => { cb.checked = false; });

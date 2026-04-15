@@ -37,11 +37,9 @@ const Comparison = (() => {
 
   function _applyFilters(deals) {
     const funnel = Utils.el('cmp-f-funnel').value;
-    const allowedStages = funnel === 'oportunidades'
-      ? (d) => Deal.stage(d).includes('Funil')
-      : funnel === 'carteira'
-        ? (d) => Deal.stage(d).includes('Carteira')
-        : null;
+    const allowedStages = funnel === 'carteira'
+      ? (d) => Deal.stage(d).includes('Carteira')
+      : (d) => Deal.stage(d).includes('Funil');
 
     return deals.filter(d => {
       if (allowedStages && !allowedStages(d)) return false;
@@ -365,7 +363,7 @@ const Comparison = (() => {
 
     clearFilters() {
       _stages = []; _statuses = [];
-      Utils.el('cmp-f-funnel').value = 'ambos';
+      Utils.el('cmp-f-funnel').value = 'oportunidades';
       Utils.el('cmp-stage-all').checked = true;
       document.querySelectorAll('#cmp-stage-list input').forEach(cb => { cb.checked = false; });
       _updateStageBtn();
@@ -460,7 +458,7 @@ const Comparison = (() => {
       _renderOrigins('cmp-origin-b', sB.sourceMap, sB.total);
       _renderTable(_tab === 'a' ? _dealsA : _dealsB);
 
-      const active = Utils.el('cmp-f-funnel').value !== 'ambos'
+      const active = Utils.el('cmp-f-funnel').value === 'carteira'
         || _stages.length > 0
         || _statuses.length > 0
         || _ratings.length > 0
