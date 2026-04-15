@@ -328,41 +328,6 @@ tbody td:first-child{color:var(--text);font-weight:600;}
         </div>
       </div>
     </div>
-    <span class="filter-label" style="margin-left:4px">Criação</span>
-    <div style="position:relative;display:inline-block">
-      <button class="filter-select" id="f-cmonth-btn" onclick="Filters.toggleCMonthMenu(event)" style="cursor:pointer;min-width:130px;text-align:left">Todos os Meses</button>
-      <div id="f-cmonth-menu" style="display:none;position:absolute;top:100%;left:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px;z-index:200;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
-        <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" id="cmonth-all" checked onchange="Filters.onCMonthAll()"> Todos</label>
-        <div id="cmonth-list">
-          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="1" onchange="Filters.onCMonthCheck()"> Janeiro</label>
-          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="2" onchange="Filters.onCMonthCheck()"> Fevereiro</label>
-          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="3" onchange="Filters.onCMonthCheck()"> Março</label>
-          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="4" onchange="Filters.onCMonthCheck()"> Abril</label>
-          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="5" onchange="Filters.onCMonthCheck()"> Maio</label>
-          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="6" onchange="Filters.onCMonthCheck()"> Junho</label>
-          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="7" onchange="Filters.onCMonthCheck()"> Julho</label>
-          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="8" onchange="Filters.onCMonthCheck()"> Agosto</label>
-          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="9" onchange="Filters.onCMonthCheck()"> Setembro</label>
-          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="10" onchange="Filters.onCMonthCheck()"> Outubro</label>
-          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="11" onchange="Filters.onCMonthCheck()"> Novembro</label>
-          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="12" onchange="Filters.onCMonthCheck()"> Dezembro</label>
-        </div>
-      </div>
-    </div>
-    <div style="position:relative;display:inline-block">
-      <button class="filter-select" id="f-cyear-btn" onclick="Filters.toggleCYearMenu(event)" style="cursor:pointer;min-width:110px;text-align:left">Todos os Anos</button>
-      <div id="f-cyear-menu" style="display:none;position:absolute;top:100%;left:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px;z-index:200;min-width:130px;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
-        <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" id="cyear-all" checked onchange="Filters.onCYearAll()"> Todos</label>
-        <div id="cyear-list">
-          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="2021" onchange="Filters.onCYearCheck()"> 2021</label>
-          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="2022" onchange="Filters.onCYearCheck()"> 2022</label>
-          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="2023" onchange="Filters.onCYearCheck()"> 2023</label>
-          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="2024" onchange="Filters.onCYearCheck()"> 2024</label>
-          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="2025" onchange="Filters.onCYearCheck()"> 2025</label>
-          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="2026" onchange="Filters.onCYearCheck()"> 2026</label>
-        </div>
-      </div>
-    </div>
     <select class="filter-select" id="f-funnel" onchange="Filters.onFunnelChange()">
       <option value="ambos">Ambos os Funis</option>
       <option value="oportunidades">Funil de Oportunidades</option>
@@ -809,17 +774,17 @@ tbody td:first-child{color:var(--text);font-weight:600;}
   </div>
 </div>
 
-<script src="config.js?v=2"></script>
-<script src="state.js?v=2"></script>
-<script src="utils.js?v=2"></script>
-<script src="auth.js?v=2"></script>
-<script src="api.js?v=2"></script>
-<script src="dashboard.js?v=2"></script>
-<script src="filters.js?v=2"></script>
-<script src="charts.js?v=2"></script>
-<script src="ui.js?v=2"></script>
-<script src="comparison.js?v=2"></script>
-<script src="tasks.js?v=2"></script>
-<script src="boot.js?v=2"></script>
+<script src="config.js?v=3"></script>
+<script src="state.js?v=3"></script>
+<script src="utils.js?v=3"></script>
+<script src="auth.js?v=3"></script>
+<script src="api.js?v=3"></script>
+<script src="dashboard.js?v=3"></script>
+<script src="filters.js?v=3"></script>
+<script src="charts.js?v=3"></script>
+<script src="ui.js?v=3"></script>
+<script src="comparison.js?v=3"></script>
+<script src="tasks.js?v=3"></script>
+<script src="boot.js?v=3"></script>
 </body>
 </html>

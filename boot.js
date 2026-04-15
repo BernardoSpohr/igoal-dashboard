@@ -6,18 +6,12 @@
 window.addEventListener('DOMContentLoaded', () => {
   Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
 
-  // Pré-seleciona 2026 no período e na data de criação
+  // Pré-seleciona 2026 no período
   State.setYears([2026]);
   const cb2026 = document.querySelector('#year-list input[value="2026"]');
   if (cb2026) cb2026.checked = true;
   Utils.el('year-all').checked = false;
   Filters._updateYearBtn();
-
-  State.setCYears([2026]);
-  const cbC2026 = document.querySelector('#cyear-list input[value="2026"]');
-  if (cbC2026) cbC2026.checked = true;
-  Utils.el('cyear-all').checked = false;
-  Filters._updateCYearBtn();
 
   // Pré-seleciona 2026 no filtro de vencimento de tarefas
   const cbTask2026 = document.querySelector('#tasks-year-list input[value="2026"]');

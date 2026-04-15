@@ -27,10 +27,6 @@ const Filters = {
         ? (d) => Deal.stage(d).includes('Carteira') || Deal.isWon(d)
         : null;
 
-    const selCMonths = State.getCMonths();
-    const selCYears  = State.getCYears();
-    const useCDate   = selCMonths.length > 0 || selCYears.length > 0;
-
     const filtered = State.getRaw().deals.filter((d) => {
       const cd = d.created_at ? new Date(d.created_at) : null;
 
@@ -46,16 +42,7 @@ const Filters = {
         return true;
       })();
 
-      // Verifica se é aberto criado no mês/ano de criação selecionado
-      const passesCDate = useCDate && Deal.isOpen(d) && (() => {
-        if (!cd) return false;
-        if (selCMonths.length > 0 && !selCMonths.includes(cd.getMonth() + 1)) return false;
-        if (selCYears.length  > 0 && !selCYears.includes(cd.getFullYear()))   return false;
-        return true;
-      })();
-
-      // Inclui se passar pelo período principal OU se for aberto no período de criação
-      if (!passesMonthYear && !passesCDate) return false;
+      if (!passesMonthYear) return false;
 
       // Stage
       if (selStages.length > 0 && !selStages.includes(Deal.stage(d))) return false;
@@ -105,8 +92,6 @@ const Filters = {
   _isActive() {
     return State.getMonths().length  > 0
       || State.getYears().length   > 0
-      || State.getCMonths().length > 0
-      || State.getCYears().length  > 0
       || Utils.el('f-funnel').value  !== 'ambos'
       || State.getStages().length  > 0
       || Utils.el('f-status').value  !== 'all'
@@ -117,16 +102,8 @@ const Filters = {
   clear() {
     State.setMonths([]);
     State.setYears([2026]);
-    State.setCMonths([]);
-    State.setCYears([2026]);
     Utils.el('month-all').checked  = true;
     Utils.el('year-all').checked   = false;
-    Utils.el('cmonth-all').checked = true;
-    Utils.el('cyear-all').checked  = false;
-    document.querySelectorAll('#cmonth-list input').forEach(cb => { cb.checked = false; });
-    document.querySelectorAll('#cyear-list input').forEach(cb => { cb.checked = cb.value === '2026'; });
-    this._updateCMonthBtn();
-    this._updateCYearBtn();
     document.querySelectorAll('#month-list input').forEach(cb => { cb.checked = false; });
     document.querySelectorAll('#year-list input').forEach(cb => { cb.checked = cb.value === '2026'; });
     this._updateMonthBtn();
@@ -218,60 +195,6 @@ const Filters = {
     Utils.setText('f-year-btn', n === 0 ? 'Todos os Anos' : `${n} ano(s)`);
   },
 
-  toggleCMonthMenu(e) {
-    e.stopPropagation();
-    const m = Utils.el('f-cmonth-menu');
-    m.style.display = m.style.display === 'none' ? '' : 'none';
-  },
-  _resetCDate() {
-    State.setCMonths([]);
-    State.setCYears([2026]);
-    Utils.el('cmonth-all').checked = true;
-    Utils.el('cyear-all').checked  = false;
-    document.querySelectorAll('#cmonth-list input').forEach(cb => { cb.checked = false; });
-    document.querySelectorAll('#cyear-list input').forEach(cb => { cb.checked = cb.value === '2026'; });
-    this._updateCMonthBtn();
-    this._updateCYearBtn();
-  },
-  onCMonthAll() {
-    this._resetCDate();
-    this.apply();
-  },
-  onCMonthCheck() {
-    const sel = [];
-    document.querySelectorAll('#cmonth-list input:checked').forEach(cb => sel.push(parseInt(cb.value)));
-    State.setCMonths(sel);
-    Utils.el('cmonth-all').checked = sel.length === 0;
-    this._updateCMonthBtn();
-    this.apply();
-  },
-  _updateCMonthBtn() {
-    const n = State.getCMonths().length;
-    Utils.setText('f-cmonth-btn', n === 0 ? 'Todos os Meses' : `${n} mês(es)`);
-  },
-
-  toggleCYearMenu(e) {
-    e.stopPropagation();
-    const m = Utils.el('f-cyear-menu');
-    m.style.display = m.style.display === 'none' ? '' : 'none';
-  },
-  onCYearAll() {
-    this._resetCDate();
-    this.apply();
-  },
-  onCYearCheck() {
-    const sel = [];
-    document.querySelectorAll('#cyear-list input:checked').forEach(cb => sel.push(parseInt(cb.value)));
-    State.setCYears(sel);
-    Utils.el('cyear-all').checked = sel.length === 0;
-    this._updateCYearBtn();
-    this.apply();
-  },
-  _updateCYearBtn() {
-    const n = State.getCYears().length;
-    Utils.setText('f-cyear-btn', n === 0 ? 'Todos os Anos' : `${n} ano(s)`);
-  },
-
   toggleStageMenu(e) {
     e.stopPropagation();
     const m = Utils.el('f-stage-menu');
@@ -335,8 +258,6 @@ document.addEventListener('click', (e) => {
     ['f-seller-menu','f-seller-btn'],
     ['f-month-menu','f-month-btn'],
     ['f-year-menu','f-year-btn'],
-    ['f-cmonth-menu','f-cmonth-btn'],
-    ['f-cyear-menu','f-cyear-btn'],
     ['f-stage-menu','f-stage-btn'],
     ['cmp-f-seller-menu','cmp-f-seller-btn'],
     ['cmp-f-cmonth-menu','cmp-f-cmonth-btn'],
