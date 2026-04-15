@@ -24,7 +24,7 @@ const UI = {
 
     const isWon  = Deal.isWon(d);
     const isLost = Deal.isLost(d);
-    const status = isWon ? '✅ Ganho' : isLost ? '❌ Perdido' : '🔵 Aberto';
+    const status = isWon ? '✅ Vendido' : isLost ? '❌ Perdido' : Deal.isPaused(d) ? '⏸️ Pausado' : '🔵 Em Andamento';
 
     Utils.setText('modal-title', d.name || 'Detalhes');
     Utils.el('modal-body').innerHTML = `<div class="modal-field-grid">
@@ -60,7 +60,7 @@ const UI = {
             <tr style="border-bottom:1px solid rgba(226,230,239,0.5)">
               <td style="padding:9px 8px;font-weight:600;color:var(--text)">${Utils.esc(d.name || '—')}</td>
               <td style="padding:9px 8px;font-family:monospace">R$ ${Utils.fmtCurrency(Deal.amount(d))}</td>
-              <td style="padding:9px 8px">${Deal.isWon(d) ? '✅ Ganho' : Deal.isLost(d) ? '❌ Perdido' : '🔵 Aberto'}</td>
+              <td style="padding:9px 8px">${Deal.isWon(d) ? '✅ Vendido' : Deal.isLost(d) ? '❌ Perdido' : Deal.isPaused(d) ? '⏸️ Pausado' : '🔵 Em Andamento'}</td>
             </tr>`).join('')}
           </tbody>
         </table>`;

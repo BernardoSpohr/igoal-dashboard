@@ -48,9 +48,11 @@ const Filters = {
       if (selStages.length > 0 && !selStages.includes(Deal.stage(d))) return false;
 
       // Status
-      if (status === 'won'  && !Deal.isWon(d)) return false;
-      if (status === 'lost' && !Deal.isLost(d)) return false;
-      if (status === 'open' && !Deal.isOpen(d)) return false;
+      if (status === 'won'      && !Deal.isWon(d))                         return false;
+      if (status === 'lost'     && !Deal.isLost(d))                        return false;
+      if (status === 'open'     && (!Deal.isOpen(d) || Deal.isPaused(d)))  return false;
+      if (status === 'paused'   && !Deal.isPaused(d))                      return false;
+      if (status === 'not-paused' && Deal.isPaused(d))                     return false;
 
       // Sellers
       if (sellers.length > 0 && !sellers.includes(Deal.seller(d))) return false;

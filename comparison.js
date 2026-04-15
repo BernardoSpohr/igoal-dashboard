@@ -60,9 +60,11 @@ const Comparison = (() => {
       }
 
       if (stage !== 'all' && Deal.stage(d) !== stage) return false;
-      if (status === 'won'  && !Deal.isWon(d))  return false;
-      if (status === 'lost' && !Deal.isLost(d)) return false;
-      if (status === 'open' && !Deal.isOpen(d)) return false;
+      if (status === 'won'        && !Deal.isWon(d))                        return false;
+      if (status === 'lost'       && !Deal.isLost(d))                       return false;
+      if (status === 'open'       && (!Deal.isOpen(d) || Deal.isPaused(d))) return false;
+      if (status === 'paused'     && !Deal.isPaused(d))                     return false;
+      if (status === 'not-paused' && Deal.isPaused(d))                      return false;
       if (_sellers.length > 0 && !_sellers.includes(Deal.seller(d))) return false;
       if (rating !== 'all' && String(d.rating) !== rating) return false;
       return true;
@@ -101,8 +103,8 @@ const Comparison = (() => {
   function _renderKPIs(sA, sB, lblA, lblB) {
     const kpis = [
       { label: 'Negócios',      nA: sA.total,        nB: sB.total,        dA: sA.total,       dB: sB.total },
-      { label: 'Ganhos',        nA: sA.wonCount,      nB: sB.wonCount,     dA: sA.wonCount,    dB: sB.wonCount },
-      { label: 'Abertos',       nA: sA.openCount,     nB: sB.openCount,    dA: sA.openCount,   dB: sB.openCount },
+      { label: 'Vendidos',      nA: sA.wonCount,      nB: sB.wonCount,     dA: sA.wonCount,    dB: sB.wonCount },
+      { label: 'Em Andamento',  nA: sA.openCount,     nB: sB.openCount,    dA: sA.openCount,   dB: sB.openCount },
       { label: 'Perdidos',      nA: sA.lostCount,     nB: sB.lostCount,    dA: sA.lostCount,   dB: sB.lostCount, inv: true },
       { label: 'Conversão',     nA: sA.convRate,      nB: sB.convRate,     dA: sA.convRate.toFixed(1) + '%',            dB: sB.convRate.toFixed(1) + '%' },
       { label: 'Receita Ganha', nA: sA.wonRevenue,    nB: sB.wonRevenue,   dA: 'R$ ' + Utils.fmtCurrency(sA.wonRevenue), dB: 'R$ ' + Utils.fmtCurrency(sB.wonRevenue) },
@@ -248,8 +250,8 @@ const Comparison = (() => {
     }
     tbody.innerHTML = deals.slice(0, 200).map(d => {
       const isWon = Deal.isWon(d), isLost = Deal.isLost(d);
-      const lbl = isWon ? 'Ganho' : isLost ? 'Perdido' : 'Aberto';
-      const cls = isWon ? 't-won' : isLost ? 't-lost' : 't-open';
+      const lbl = isWon ? 'Vendido' : isLost ? 'Perdido' : Deal.isPaused(d) ? 'Pausado' : 'Em Andamento';
+      const cls = isWon ? 't-won'   : isLost ? 't-lost'  : Deal.isPaused(d) ? 't-paused' : 't-open';
       return `<tr>
         <td>${Utils.esc(d.name || '—')}</td>
         <td class="td-mono">R$ ${Utils.fmtCurrency(Deal.amount(d))}</td>

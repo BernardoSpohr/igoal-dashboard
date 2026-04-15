@@ -159,6 +159,7 @@ tbody td:first-child{color:var(--text);font-weight:600;}
 .t-open{background:var(--accent-lt);color:#1D4ED8;}
 .t-won{background:var(--success-lt);color:var(--success);}
 .t-lost{background:var(--danger-lt);color:var(--danger);}
+.t-paused{background:#FEF3C7;color:#D97706;}
 .td-mono{font-family:'IBM Plex Mono',monospace;font-size:11px;}
 
 /* ── MODAL ── */
@@ -342,9 +343,11 @@ tbody td:first-child{color:var(--text);font-weight:600;}
     </div>
     <select class="filter-select" id="f-status" onchange="Filters.apply()">
       <option value="all">Todos os Status</option>
-      <option value="open">Abertos</option>
-      <option value="won">Ganhos</option>
+      <option value="open">Em Andamento</option>
+      <option value="won">Vendidos</option>
       <option value="lost">Perdidos</option>
+      <option value="paused">Pausado</option>
+      <option value="not-paused">Não Pausado</option>
     </select>
     <select class="filter-select" id="f-rating" onchange="Filters.apply()">
       <option value="all">Qualquer estrela</option>
@@ -567,9 +570,11 @@ tbody td:first-child{color:var(--text);font-weight:600;}
     </select>
     <select class="filter-select" id="cmp-f-status" onchange="Comparison.render()">
       <option value="all">Todos os Status</option>
-      <option value="open">Abertos</option>
-      <option value="won">Ganhos</option>
+      <option value="open">Em Andamento</option>
+      <option value="won">Vendidos</option>
       <option value="lost">Perdidos</option>
+      <option value="paused">Pausado</option>
+      <option value="not-paused">Não Pausado</option>
     </select>
     <select class="filter-select" id="cmp-f-rating" onchange="Comparison.render()">
       <option value="all">Qualquer estrela</option>
@@ -774,17 +779,17 @@ tbody td:first-child{color:var(--text);font-weight:600;}
   </div>
 </div>
 
-<script src="config.js?v=3"></script>
-<script src="state.js?v=3"></script>
-<script src="utils.js?v=3"></script>
-<script src="auth.js?v=3"></script>
-<script src="api.js?v=3"></script>
-<script src="dashboard.js?v=3"></script>
-<script src="filters.js?v=3"></script>
-<script src="charts.js?v=3"></script>
-<script src="ui.js?v=3"></script>
-<script src="comparison.js?v=3"></script>
-<script src="tasks.js?v=3"></script>
-<script src="boot.js?v=3"></script>
+<script src="config.js?v=4"></script>
+<script src="state.js?v=4"></script>
+<script src="utils.js?v=4"></script>
+<script src="auth.js?v=4"></script>
+<script src="api.js?v=4"></script>
+<script src="dashboard.js?v=4"></script>
+<script src="filters.js?v=4"></script>
+<script src="charts.js?v=4"></script>
+<script src="ui.js?v=4"></script>
+<script src="comparison.js?v=4"></script>
+<script src="tasks.js?v=4"></script>
+<script src="boot.js?v=4"></script>
 </body>
 </html>

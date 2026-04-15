@@ -62,9 +62,10 @@ const Deal = {
   stage:  (d) => (d.deal_stage && typeof d.deal_stage === 'object' ? d.deal_stage.name : d.deal_stage) || 'Sem etapa',
   source: (d) => (d.deal_source && typeof d.deal_source === 'object' ? d.deal_source.name : d.deal_source) || d.lead_source || d.source || 'Direto',
   seller: (d) => (d.user && d.user.name) || d.responsible_name || '',
-  isWon:  (d) => d.win === true || d.win === 1,
-  isLost: (d) => !!(d.closed_at && !Deal.isWon(d)),
-  isOpen: (d) => !Deal.isWon(d) && !Deal.isLost(d),
+  isWon:    (d) => d.win === true || d.win === 1,
+  isLost:   (d) => !!(d.closed_at && !Deal.isWon(d)),
+  isPaused: (d) => d.paused === true,
+  isOpen:   (d) => !Deal.isWon(d) && !Deal.isLost(d),
   // Use closed_at for won deals (financial close date), fallback to created_at
   revenueDate: (d) => d.closed_at || d.created_at,
 };
