@@ -5,6 +5,7 @@
 ════════════════════════════════════════════ */
 const Tasks = (() => {
   let _sellers = [];
+  let _selStatuses = [];
   let _selMonths = [];
   let _selYears  = [];
   let _builtSellers = false;
@@ -69,10 +70,15 @@ const Tasks = (() => {
     Utils.setText('tasks-f-year-btn', _selYears.length === 0 ? 'Todos os Anos' : _selYears.join(', '));
   }
 
+  function _updateStatusBtn() {
+    const labels = { pending: 'Pendentes', overdue: 'Atrasadas', done: 'Concluídas' };
+    Utils.setText('tasks-f-status-btn',
+      _selStatuses.length === 0 ? 'Todos os Status' : _selStatuses.map(s => labels[s] || s).join(', '));
+  }
+
   function _filtered() {
-    const status = Utils.el('tasks-f-status').value;
     return _allTasks().filter(t => {
-      if (status !== 'all' && _taskStatus(t) !== status) return false;
+      if (_selStatuses.length > 0 && !_selStatuses.includes(_taskStatus(t))) return false;
       if (_sellers.length > 0 && !_sellers.includes(_taskSeller(t))) return false;
       const due = t.due_date || t.date;
       if (_selMonths.length > 0 || _selYears.length > 0) {
@@ -102,6 +108,30 @@ const Tasks = (() => {
     },
 
     _onKey(e) { if (e.key === 'Escape') Tasks.close(); },
+
+    toggleStatusMenu(e) {
+      e.stopPropagation();
+      const menu = Utils.el('tasks-f-status-menu');
+      const open = menu.style.display === 'block';
+      document.querySelectorAll('[id$="-menu"]').forEach(m => { m.style.display = 'none'; });
+      menu.style.display = open ? 'none' : 'block';
+    },
+
+    onStatusAll() {
+      _selStatuses = [];
+      document.querySelectorAll('#tasks-status-list input').forEach(cb => { cb.checked = false; });
+      Utils.el('tasks-status-all').checked = true;
+      _updateStatusBtn();
+      this.render();
+    },
+
+    onStatusCheck() {
+      _selStatuses = [];
+      document.querySelectorAll('#tasks-status-list input:checked').forEach(cb => _selStatuses.push(cb.value));
+      Utils.el('tasks-status-all').checked = _selStatuses.length === 0;
+      _updateStatusBtn();
+      this.render();
+    },
 
     toggleSellerMenu(e) {
       e.stopPropagation();
@@ -177,10 +207,14 @@ const Tasks = (() => {
     },
 
     clearFilters() {
-      _sellers   = [];
-      _selMonths = [];
-      _selYears  = [];
-      Utils.el('tasks-f-status').value = 'all';
+      _sellers     = [];
+      _selStatuses = [];
+      _selMonths   = [];
+      _selYears    = [];
+      _selStatuses = [];
+      Utils.el('tasks-status-all').checked = true;
+      document.querySelectorAll('#tasks-status-list input').forEach(cb => { cb.checked = false; });
+      _updateStatusBtn();
       Utils.el('tasks-seller-all').checked = true;
       document.querySelectorAll('#tasks-seller-list input').forEach(cb => { cb.checked = false; });
       Utils.el('tasks-month-all').checked = true;
@@ -234,7 +268,7 @@ const Tasks = (() => {
         }).join('');
       }
 
-      const active = Utils.el('tasks-f-status').value !== 'all'
+      const active = _selStatuses.length > 0
         || _sellers.length > 0
         || _selMonths.length > 0
         || _selYears.length  > 0;

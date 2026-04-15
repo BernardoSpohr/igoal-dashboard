@@ -708,12 +708,17 @@ tbody td:first-child{color:var(--text);font-weight:600;}
 
   <div class="filter-bar" style="flex-shrink:0">
     <span class="filter-label">Filtros</span>
-    <select class="filter-select" id="tasks-f-status" onchange="Tasks.render()">
-      <option value="all">Todos os Status</option>
-      <option value="pending">Pendentes</option>
-      <option value="overdue">Atrasadas</option>
-      <option value="done">Concluídas</option>
-    </select>
+    <div style="position:relative;display:inline-block">
+      <button class="filter-select" id="tasks-f-status-btn" onclick="Tasks.toggleStatusMenu(event)" style="cursor:pointer;min-width:140px;text-align:left">Todos os Status</button>
+      <div id="tasks-f-status-menu" style="display:none;position:absolute;top:100%;left:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px;z-index:400;min-width:170px;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" id="tasks-status-all" checked onchange="Tasks.onStatusAll()"> Todos</label>
+        <div id="tasks-status-list">
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="pending" onchange="Tasks.onStatusCheck()"> Pendentes</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="overdue" onchange="Tasks.onStatusCheck()"> Atrasadas</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="done" onchange="Tasks.onStatusCheck()"> Concluídas</label>
+        </div>
+      </div>
+    </div>
     <span class="filter-label" style="margin-left:4px">Vencimento</span>
     <div style="position:relative;display:inline-block">
       <button class="filter-select" id="tasks-f-month-btn" onclick="Tasks.toggleMonthMenu(event)" style="cursor:pointer;min-width:130px;text-align:left">Todos os Meses</button>
@@ -784,17 +789,17 @@ tbody td:first-child{color:var(--text);font-weight:600;}
   </div>
 </div>
 
-<script src="config.js?v=6"></script>
-<script src="state.js?v=6"></script>
-<script src="utils.js?v=6"></script>
-<script src="auth.js?v=6"></script>
-<script src="api.js?v=6"></script>
-<script src="dashboard.js?v=6"></script>
-<script src="filters.js?v=6"></script>
-<script src="charts.js?v=6"></script>
-<script src="ui.js?v=6"></script>
-<script src="comparison.js?v=6"></script>
-<script src="tasks.js?v=6"></script>
-<script src="boot.js?v=6"></script>
+<script src="config.js?v=7"></script>
+<script src="state.js?v=7"></script>
+<script src="utils.js?v=7"></script>
+<script src="auth.js?v=7"></script>
+<script src="api.js?v=7"></script>
+<script src="dashboard.js?v=7"></script>
+<script src="filters.js?v=7"></script>
+<script src="charts.js?v=7"></script>
+<script src="ui.js?v=7"></script>
+<script src="comparison.js?v=7"></script>
+<script src="tasks.js?v=7"></script>
+<script src="boot.js?v=7"></script>
 </body>
 </html>
