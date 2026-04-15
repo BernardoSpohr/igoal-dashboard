@@ -28,17 +28,20 @@ const Filters = {
         : null;
 
     const filtered = State.getRaw().deals.filter((d) => {
-      const cd = d.created_at ? new Date(d.created_at) : null;
-
       // Funnel
       if (allowedStages && !allowedStages(d)) return false;
+
+      // Para ganhos usa closed_at; para os demais usa created_at
+      const refDate = Deal.isWon(d) && d.closed_at
+        ? new Date(d.closed_at)
+        : d.created_at ? new Date(d.created_at) : null;
 
       // Verifica se passa pelo filtro de mês/ano (período principal)
       const passesMonthYear = (() => {
         if (selMonths.length === 0 && selYears.length === 0) return true;
-        if (!cd) return false;
-        if (selMonths.length > 0 && !selMonths.includes(cd.getMonth() + 1)) return false;
-        if (selYears.length  > 0 && !selYears.includes(cd.getFullYear()))   return false;
+        if (!refDate) return false;
+        if (selMonths.length > 0 && !selMonths.includes(refDate.getMonth() + 1)) return false;
+        if (selYears.length  > 0 && !selYears.includes(refDate.getFullYear()))   return false;
         return true;
       })();
 

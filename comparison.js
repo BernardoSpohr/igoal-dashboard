@@ -27,9 +27,11 @@ const Comparison = (() => {
 
   function _dealsForMonth(yr, mo) {
     return State.getRaw().deals.filter(d => {
-      if (!d.created_at) return false;
-      const cd = new Date(d.created_at);
-      return cd.getFullYear() === yr && cd.getMonth() === mo - 1;
+      // Para ganhos usa closed_at; para os demais usa created_at
+      const ref = Deal.isWon(d) && d.closed_at ? new Date(d.closed_at)
+        : d.created_at ? new Date(d.created_at) : null;
+      if (!ref) return false;
+      return ref.getFullYear() === yr && ref.getMonth() === mo - 1;
     });
   }
 
