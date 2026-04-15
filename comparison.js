@@ -8,7 +8,7 @@ const Comparison = (() => {
   let _mode = 'deals';
   let _tab  = 'a';
   let _dealsA = [], _dealsB = [];
-  let _sellers = [], _cMonths = [], _cYears = [];
+  let _sellers = [], _cMonths = [], _cYears = [], _stages = [], _statuses = [];
   const MS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const CA = '#2563EB', CB = '#7C3AED';
   const BGA = 'rgba(37,99,235,0.08)', BGB = 'rgba(124,58,237,0.08)';
@@ -35,8 +35,6 @@ const Comparison = (() => {
 
   function _applyFilters(deals) {
     const funnel = Utils.el('cmp-f-funnel').value;
-    const stage  = Utils.el('cmp-f-stage').value;
-    const status = Utils.el('cmp-f-status').value;
     const rating = Utils.el('cmp-f-rating').value;
     const allowedStages = funnel === 'oportunidades'
       ? (d) => Deal.stage(d).includes('Funil')
@@ -44,27 +42,19 @@ const Comparison = (() => {
         ? (d) => Deal.stage(d).includes('Carteira') || Deal.isWon(d)
         : null;
 
-    const useCDate = _cMonths.length > 0 || _cYears.length > 0;
     return deals.filter(d => {
-      const cd = d.created_at ? new Date(d.created_at) : null;
       if (allowedStages && !allowedStages(d)) return false;
-
-      if (useCDate) {
-        const passesCDate = Deal.isOpen(d) && (() => {
-          if (!cd) return false;
-          if (_cMonths.length > 0 && !_cMonths.includes(cd.getMonth() + 1)) return false;
-          if (_cYears.length  > 0 && !_cYears.includes(cd.getFullYear()))   return false;
-          return true;
-        })();
-        if (!passesCDate) return false;
+      if (_stages.length > 0 && !_stages.includes(Deal.stage(d))) return false;
+      if (_statuses.length > 0) {
+        const ok = _statuses.some(s =>
+          s === 'won'        ? Deal.isWon(d) :
+          s === 'lost'       ? Deal.isLost(d) :
+          s === 'open'       ? (Deal.isOpen(d) && !Deal.isPaused(d)) :
+          s === 'paused'     ? Deal.isPaused(d) :
+          s === 'not-paused' ? !Deal.isPaused(d) : false
+        );
+        if (!ok) return false;
       }
-
-      if (stage !== 'all' && Deal.stage(d) !== stage) return false;
-      if (status === 'won'        && !Deal.isWon(d))                        return false;
-      if (status === 'lost'       && !Deal.isLost(d))                       return false;
-      if (status === 'open'       && (!Deal.isOpen(d) || Deal.isPaused(d))) return false;
-      if (status === 'paused'     && !Deal.isPaused(d))                     return false;
-      if (status === 'not-paused' && Deal.isPaused(d))                      return false;
       if (_sellers.length > 0 && !_sellers.includes(Deal.seller(d))) return false;
       if (rating !== 'all' && String(d.rating) !== rating) return false;
       return true;
@@ -79,18 +69,30 @@ const Comparison = (() => {
     ).join('');
   }
 
-  function _rebuildStageDropdown(rawA, rawB) {
+  function _updateStageBtn() {
+    Utils.setText('cmp-f-stage-btn', _stages.length === 0 ? 'Todas as Etapas' : `${_stages.length} etapa(s)`);
+  }
+
+  function _updateStatusBtn() {
+    const labels = { open: 'Em Andamento', won: 'Vendidos', lost: 'Perdidos', paused: 'Pausado', 'not-paused': 'Não Pausado' };
+    Utils.setText('cmp-f-status-btn', _statuses.length === 0 ? 'Todos os Status' : _statuses.map(s => labels[s] || s).join(', '));
+  }
+
+  function _rebuildStageList(rawA, rawB) {
     const funnel = Utils.el('cmp-f-funnel').value;
     const allDeals = rawA.concat(rawB);
     const allStages = [...new Set(allDeals.map(Deal.stage).filter(Boolean))];
     const stages = funnel === 'oportunidades' ? allStages.filter(s => s.includes('Funil'))
       : funnel === 'carteira' ? allStages.filter(s => s.includes('Carteira'))
       : allStages;
-    const sel = Utils.el('cmp-f-stage');
-    const cur = sel.value;
-    sel.innerHTML = '<option value="all">Todas as Etapas</option>' +
-      stages.map(s => `<option value="${Utils.esc(s)}">${Utils.esc(s)}</option>`).join('');
-    if (stages.includes(cur)) sel.value = cur;
+    _stages = _stages.filter(s => stages.includes(s));
+    Utils.el('cmp-stage-list').innerHTML = stages.map(s =>
+      `<label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer">
+        <input type="checkbox" value="${Utils.esc(s)}"${_stages.includes(s) ? ' checked' : ''} onchange="Comparison.onStageCheck()"> ${Utils.esc(s)}
+      </label>`
+    ).join('');
+    Utils.el('cmp-stage-all').checked = _stages.length === 0;
+    _updateStageBtn();
   }
 
   function _dailySeries(deals, daysInMonth, valueFn) {
@@ -332,8 +334,52 @@ const Comparison = (() => {
       this.render();
     },
 
+    toggleStageMenu(e) {
+      e.stopPropagation();
+      const m = Utils.el('cmp-f-stage-menu');
+      m.style.display = m.style.display === 'none' ? '' : 'none';
+    },
+
+    onStageAll() {
+      _stages = [];
+      document.querySelectorAll('#cmp-stage-list input').forEach(cb => { cb.checked = false; });
+      Utils.el('cmp-stage-all').checked = true;
+      _updateStageBtn();
+      this.render();
+    },
+
+    onStageCheck() {
+      _stages = [];
+      document.querySelectorAll('#cmp-stage-list input:checked').forEach(cb => _stages.push(cb.value));
+      Utils.el('cmp-stage-all').checked = _stages.length === 0;
+      _updateStageBtn();
+      this.render();
+    },
+
+    toggleStatusMenu(e) {
+      e.stopPropagation();
+      const m = Utils.el('cmp-f-status-menu');
+      m.style.display = m.style.display === 'none' ? '' : 'none';
+    },
+
+    onStatusAll() {
+      _statuses = [];
+      document.querySelectorAll('#cmp-status-list input').forEach(cb => { cb.checked = false; });
+      Utils.el('cmp-status-all').checked = true;
+      _updateStatusBtn();
+      this.render();
+    },
+
+    onStatusCheck() {
+      _statuses = [];
+      document.querySelectorAll('#cmp-status-list input:checked').forEach(cb => _statuses.push(cb.value));
+      Utils.el('cmp-status-all').checked = _statuses.length === 0;
+      _updateStatusBtn();
+      this.render();
+    },
+
     clearFilters() {
-      _cMonths = []; _cYears = [];
+      _cMonths = []; _cYears = []; _stages = []; _statuses = [];
       Utils.el('cmp-cmonth-all').checked = true;
       Utils.el('cmp-cyear-all').checked  = true;
       document.querySelectorAll('#cmp-cmonth-list input').forEach(cb => { cb.checked = false; });
@@ -341,8 +387,12 @@ const Comparison = (() => {
       Utils.setText('cmp-f-cmonth-btn', 'Todos os Meses');
       Utils.setText('cmp-f-cyear-btn', 'Todos os Anos');
       Utils.el('cmp-f-funnel').value = 'ambos';
-      Utils.el('cmp-f-stage').value  = 'all';
-      Utils.el('cmp-f-status').value = 'all';
+      Utils.el('cmp-stage-all').checked = true;
+      document.querySelectorAll('#cmp-stage-list input').forEach(cb => { cb.checked = false; });
+      _updateStageBtn();
+      Utils.el('cmp-status-all').checked = true;
+      document.querySelectorAll('#cmp-status-list input').forEach(cb => { cb.checked = false; });
+      _updateStatusBtn();
       Utils.el('cmp-f-rating').value = 'all';
       _sellers = [];
       Utils.el('cmp-seller-all').checked = true;
@@ -352,7 +402,10 @@ const Comparison = (() => {
     },
 
     onFunnelChange() {
-      Utils.el('cmp-f-stage').value = 'all';
+      _stages = [];
+      document.querySelectorAll('#cmp-stage-list input').forEach(cb => { cb.checked = false; });
+      Utils.el('cmp-stage-all').checked = true;
+      _updateStageBtn();
       this.render();
     },
 
@@ -386,7 +439,7 @@ const Comparison = (() => {
       const rawA = _dealsForMonth(yrA, moA);
       const rawB = _dealsForMonth(yrB, moB);
 
-      _rebuildStageDropdown(rawA, rawB);
+      _rebuildStageList(rawA, rawB);
 
       const allSellers = [...new Set(rawA.concat(rawB).map(Deal.seller).filter(Boolean))].sort();
       _buildSellerList(allSellers);
@@ -428,8 +481,8 @@ const Comparison = (() => {
       const active = _cMonths.length > 0
         || _cYears.length > 0
         || Utils.el('cmp-f-funnel').value !== 'ambos'
-        || Utils.el('cmp-f-stage').value  !== 'all'
-        || Utils.el('cmp-f-status').value !== 'all'
+        || _stages.length > 0
+        || _statuses.length > 0
         || Utils.el('cmp-f-rating').value !== 'all'
         || _sellers.length > 0;
       Utils.el('cmp-btn-clear').style.display = active ? 'inline-flex' : 'none';

@@ -570,17 +570,26 @@ tbody td:first-child{color:var(--text);font-weight:600;}
       <option value="oportunidades">Funil de Oportunidades</option>
       <option value="carteira">Carteira de Clientes</option>
     </select>
-    <select class="filter-select" id="cmp-f-stage" onchange="Comparison.render()">
-      <option value="all">Todas as Etapas</option>
-    </select>
-    <select class="filter-select" id="cmp-f-status" onchange="Comparison.render()">
-      <option value="all">Todos os Status</option>
-      <option value="open">Em Andamento</option>
-      <option value="won">Vendidos</option>
-      <option value="lost">Perdidos</option>
-      <option value="paused">Pausado</option>
-      <option value="not-paused">Não Pausado</option>
-    </select>
+    <div style="position:relative;display:inline-block">
+      <button class="filter-select" id="cmp-f-stage-btn" onclick="Comparison.toggleStageMenu(event)" style="cursor:pointer;min-width:140px;text-align:left">Todas as Etapas</button>
+      <div id="cmp-f-stage-menu" style="display:none;position:absolute;top:100%;left:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px;z-index:400;min-width:200px;max-height:260px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" id="cmp-stage-all" checked onchange="Comparison.onStageAll()"> Todas</label>
+        <div id="cmp-stage-list"></div>
+      </div>
+    </div>
+    <div style="position:relative;display:inline-block">
+      <button class="filter-select" id="cmp-f-status-btn" onclick="Comparison.toggleStatusMenu(event)" style="cursor:pointer;min-width:140px;text-align:left">Todos os Status</button>
+      <div id="cmp-f-status-menu" style="display:none;position:absolute;top:100%;left:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px;z-index:400;min-width:170px;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" id="cmp-status-all" checked onchange="Comparison.onStatusAll()"> Todos</label>
+        <div id="cmp-status-list">
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="open" onchange="Comparison.onStatusCheck()"> Em Andamento</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="won" onchange="Comparison.onStatusCheck()"> Vendidos</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="lost" onchange="Comparison.onStatusCheck()"> Perdidos</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="paused" onchange="Comparison.onStatusCheck()"> Pausado</label>
+          <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer"><input type="checkbox" value="not-paused" onchange="Comparison.onStatusCheck()"> Não Pausado</label>
+        </div>
+      </div>
+    </div>
     <select class="filter-select" id="cmp-f-rating" onchange="Comparison.render()">
       <option value="all">Qualquer estrela</option>
       <option value="1">★ 1</option><option value="2">★★ 2</option>
@@ -789,17 +798,17 @@ tbody td:first-child{color:var(--text);font-weight:600;}
   </div>
 </div>
 
-<script src="config.js?v=10"></script>
-<script src="state.js?v=10"></script>
-<script src="utils.js?v=10"></script>
-<script src="auth.js?v=10"></script>
-<script src="api.js?v=10"></script>
-<script src="dashboard.js?v=10"></script>
-<script src="filters.js?v=10"></script>
-<script src="charts.js?v=10"></script>
-<script src="ui.js?v=10"></script>
-<script src="comparison.js?v=10"></script>
-<script src="tasks.js?v=10"></script>
-<script src="boot.js?v=10"></script>
+<script src="config.js?v=11"></script>
+<script src="state.js?v=11"></script>
+<script src="utils.js?v=11"></script>
+<script src="auth.js?v=11"></script>
+<script src="api.js?v=11"></script>
+<script src="dashboard.js?v=11"></script>
+<script src="filters.js?v=11"></script>
+<script src="charts.js?v=11"></script>
+<script src="ui.js?v=11"></script>
+<script src="comparison.js?v=11"></script>
+<script src="tasks.js?v=11"></script>
+<script src="boot.js?v=11"></script>
 </body>
 </html>

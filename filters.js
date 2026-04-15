@@ -299,6 +299,8 @@ document.addEventListener('click', (e) => {
     ['f-year-menu','f-year-btn'],
     ['f-status-menu','f-status-btn'],
     ['f-stage-menu','f-stage-btn'],
+    ['cmp-f-stage-menu','cmp-f-stage-btn'],
+    ['cmp-f-status-menu','cmp-f-status-btn'],
     ['cmp-f-seller-menu','cmp-f-seller-btn'],
     ['cmp-f-cmonth-menu','cmp-f-cmonth-btn'],
     ['cmp-f-cyear-menu','cmp-f-cyear-btn'],
