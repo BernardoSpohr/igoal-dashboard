@@ -64,7 +64,7 @@ const Deal = {
   seller: (d) => (d.user && d.user.name) || d.responsible_name || '',
   isWon:    (d) => d.win === true || d.win === 1,
   isLost:   (d) => !!(d.closed_at && !Deal.isWon(d)),
-  isPaused: (d) => d.paused === true,
+  isPaused: (d) => d.hold === true,
   isOpen:   (d) => !Deal.isWon(d) && !Deal.isLost(d),
   // Use closed_at for won deals (financial close date), fallback to created_at
   revenueDate: (d) => d.closed_at || d.created_at,
