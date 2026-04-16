@@ -260,8 +260,20 @@ const Renderer = {
   },
 
   renderAll() {
-    const filt = State.getFiltered();
+    const filt  = State.getFiltered();
     const stats = computeStats(filt);
+
+    // Count only deals created in the selected period
+    const selMonths = State.getMonths();
+    const selYears  = State.getYears();
+    const createdCount = State.getRaw().deals.filter(d => {
+      if (!d.created_at) return false;
+      const dt = new Date(d.created_at);
+      if (selMonths.length > 0 && !selMonths.includes(dt.getMonth() + 1)) return false;
+      if (selYears.length  > 0 && !selYears.includes(dt.getFullYear()))   return false;
+      return true;
+    }).length;
+    stats.createdCount = createdCount;
 
     this._renderKPIs(stats);
     Charts.renderDonut('donutChart',  'donut',  stats);
@@ -276,11 +288,11 @@ const Renderer = {
   },
 
   _renderKPIs(stats) {
-    const { total, wonCount, openCount, openRevenue, wonRevenue, totalRevenue, convRate, avgTicket } = stats;
+    const { createdCount, wonCount, openCount, openRevenue, wonRevenue, totalRevenue, convRate, avgTicket } = stats;
 
-    Utils.animateNumber('v-leads', total);
+    Utils.animateNumber('v-leads', createdCount);
     Utils.setText('s-leads', `R$ ${Utils.fmtCurrency(totalRevenue)} em valor total`);
-    UI.setDelta('d-leads', 'flat', `${total}`);
+    UI.setDelta('d-leads', 'flat', `${createdCount}`);
 
     Utils.animateNumber('v-deals', openCount);
     Utils.setText('s-deals', `R$ ${Utils.fmtCurrency(openRevenue)} em aberto`);
