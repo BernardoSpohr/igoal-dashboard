@@ -5,7 +5,7 @@
 ════════════════════════════════════════════ */
 const API = {
   _url(endpoint) {
-    const token = sessionStorage.getItem(CONFIG.TOKEN_KEY) || CONFIG.API_TOKEN;
+    const token = sessionStorage.getItem(CONFIG.TOKEN_KEY) || '';
     return `${CONFIG.PROXY_BASE}?token=${encodeURIComponent(token)}&endpoint=${encodeURIComponent(endpoint)}`;
   },
 
