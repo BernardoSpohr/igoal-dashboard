@@ -22,9 +22,12 @@ const Tasks = (() => {
       || t.responsible_name || '';
   }
 
+  // RD Station markup values that indicate overdue
+  const OVERDUE_MARKUPS = new Set(['past', 'week-1', 'week-2', 'month-1', 'month-2']);
+
   function _taskStatus(t) {
     if (t.markup === 'done' || t.done === true) return 'done';
-    if (t.markup === 'past') return 'overdue';
+    if (OVERDUE_MARKUPS.has(t.markup)) return 'overdue';
     const due = t.due_date || t.date;
     if (due && new Date(due) < new Date(new Date().toDateString())) return 'overdue';
     return 'pending';
