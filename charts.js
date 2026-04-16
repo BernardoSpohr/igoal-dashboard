@@ -359,24 +359,24 @@ const Renderer = {
     tbody.replaceChildren(fragment);
   },
 
-  _tableDeals: [],
-
   searchDeals(query) {
     const q = (query || '').toLowerCase().trim();
-    const deals = q
-      ? this._tableDeals.filter(d => (d.name || '').toLowerCase().includes(q))
-      : this._tableDeals;
+    const all = Renderer._tableDeals || [];
+    // Build list of {deal, originalIndex} so drill-down still works
+    const matched = q
+      ? all.map((d, i) => ({ d, i })).filter(({ d }) => (d.name || '').toLowerCase().includes(q))
+      : all.map((d, i) => ({ d, i }));
 
     const tbody = Utils.el('deals-body');
-    Utils.setText('tbl-count', `${deals.length} negócio${deals.length !== 1 ? 's' : ''}`);
+    Utils.setText('tbl-count', `${matched.length} negócio${matched.length !== 1 ? 's' : ''}`);
 
-    if (!deals.length) {
+    if (!matched.length) {
       tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="ei">🔍</div><p>Nenhum negócio encontrado</p></div></td></tr>';
       return;
     }
 
     const tmp = document.createElement('tbody');
-    tmp.innerHTML = deals.slice(0, 200).map((d, i) => {
+    tmp.innerHTML = matched.slice(0, 200).map(({ d, i }) => {
       const stage  = Deal.stage(d);
       const isWon  = Deal.isWon(d);
       const isLost = Deal.isLost(d);
