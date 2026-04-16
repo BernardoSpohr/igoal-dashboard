@@ -18,6 +18,7 @@ const Filters = {
     const selRatings  = State.getRatings();
     const selMonths = State.getMonths();
     const selYears  = State.getYears();
+    const companyQ  = State.getCompanySearch().toLowerCase().trim();
 
     const sellers = State.getSellers();
     const funnel = Utils.el('f-funnel').value;
@@ -66,6 +67,9 @@ const Filters = {
       // Rating
       if (selRatings.length > 0 && !selRatings.includes(String(d.rating))) return false;
 
+      // Company search
+      if (companyQ && !(d.name || '').toLowerCase().includes(companyQ)) return false;
+
       return true;
     });
 
@@ -104,7 +108,8 @@ const Filters = {
       || State.getStages().length   > 0
       || State.getStatuses().length > 0
       || State.getRatings().length  > 0
-      || State.getSellers().length  > 0;
+      || State.getSellers().length  > 0
+      || State.getCompanySearch()   !== '';
   },
 
   clear() {
@@ -133,6 +138,14 @@ const Filters = {
     Utils.el('seller-all').checked = true;
     document.querySelectorAll('#seller-list input').forEach(cb => { cb.checked = false; });
     this._updateSellerBtn();
+    State.setCompanySearch('');
+    const cs = Utils.el('company-search');
+    if (cs) cs.value = '';
+    this.apply();
+  },
+
+  onCompanySearch(q) {
+    State.setCompanySearch(q);
     this.apply();
   },
 

@@ -13,6 +13,7 @@ const State = (() => {
   let _selectedStatuses = [];
   let _selectedRatings = [];
   let _lineMode = 'deals';
+  let _companySearch = '';
   let _autoTimer = null;
 
   return {
@@ -25,6 +26,7 @@ const State = (() => {
     getStatuses: () => _selectedStatuses,
     getRatings: () => _selectedRatings,
     getLineMode: () => _lineMode,
+    getCompanySearch: () => _companySearch,
 
     setRaw: (deals, tasks) => { _raw.deals = deals; _raw.tasks = tasks; },
     setFiltered: (arr) => { _filtered = arr; },
@@ -35,6 +37,7 @@ const State = (() => {
     setStatuses: (arr) => { _selectedStatuses = arr; },
     setRatings: (arr) => { _selectedRatings = arr; },
     setLineMode: (m) => { _lineMode = m; },
+    setCompanySearch: (q) => { _companySearch = q; },
 
     startAutoRefresh: (fn) => {
       clearInterval(_autoTimer);
