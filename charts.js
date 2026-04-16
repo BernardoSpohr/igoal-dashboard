@@ -270,12 +270,14 @@ const Renderer = {
     const funnelOk = funnel === 'carteira'
       ? (d) => Deal.stage(d).includes('Carteira')
       : (d) => Deal.stage(d).includes('Funil');
+    const companyQ = State.getCompanySearch().toLowerCase().trim();
     stats.createdCount = State.getRaw().deals.filter(d => {
       if (!funnelOk(d)) return false;
       if (!d.created_at) return false;
       const dt = new Date(d.created_at);
       if (selMonths.length > 0 && !selMonths.includes(dt.getMonth() + 1)) return false;
       if (selYears.length  > 0 && !selYears.includes(dt.getFullYear()))   return false;
+      if (companyQ && !(d.name || '').toLowerCase().includes(companyQ)) return false;
       return true;
     }).length;
 
