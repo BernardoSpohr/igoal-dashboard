@@ -89,14 +89,23 @@ const Tasks = (() => {
       return true;
     });
 
-    // Sort by due date ascending (closest first); tasks without date go to the end
+    // Smart sort:
+    // 1. Pending (future) sorted ascending — soonest due first
+    // 2. Overdue sorted descending — most recently overdue first
+    // 3. Done at the end
+    const statusOrder = { pending: 0, overdue: 1, done: 2 };
     tasks.sort((a, b) => {
+      const sa = _taskStatus(a), sb = _taskStatus(b);
+      if (sa !== sb) return statusOrder[sa] - statusOrder[sb];
       const da = a.due_date || a.date;
       const db = b.due_date || b.date;
       if (!da && !db) return 0;
       if (!da) return 1;
       if (!db) return -1;
-      return new Date(da) - new Date(db);
+      // Pending: ascending (soonest first); Overdue: descending (most recent first)
+      return sa === 'overdue'
+        ? new Date(db) - new Date(da)
+        : new Date(da) - new Date(db);
     });
 
     return tasks;
