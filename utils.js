@@ -104,8 +104,8 @@ function computeStats(deals) {
 
   // Conversion = won / (won + lost) — excludes pipeline still in progress
   stats.convRate      = stats.total > 0 ? (stats.wonCount / stats.total * 100) : 0;
-  const closedRev     = stats.wonRevenue + stats.lostRevenue;
-  stats.convRateValue = closedRev > 0 ? (stats.wonRevenue / closedRev * 100) : 0;
+  const totalRev      = stats.wonRevenue + stats.lostRevenue + stats.openRevenue;
+  stats.convRateValue = totalRev > 0 ? (stats.wonRevenue / totalRev * 100) : 0;
   stats.avgTicket     = stats.wonCount > 0 ? stats.wonRevenue / stats.wonCount : 0;
 
   return stats;

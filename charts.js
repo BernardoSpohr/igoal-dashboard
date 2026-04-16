@@ -253,7 +253,7 @@ const Renderer = {
   _renderConvKPI(stats) {
     const isVal  = this._convMode === 'val';
     const rate   = isVal ? stats.convRateValue : stats.convRate;
-    const sub    = isVal ? 'receita ganha ÷ (ganha + perdida)' : 'ganhos ÷ total de negócios';
+    const sub    = isVal ? 'receita ganha ÷ total de receita' : 'ganhos ÷ total de negócios';
     Utils.setText('v-conv', `${rate.toFixed(1)}%`);
     Utils.setText('s-conv', sub);
     UI.setDelta('d-conv', rate >= 30 ? 'up' : rate >= 15 ? 'flat' : 'down', `${rate.toFixed(1)}%`);
