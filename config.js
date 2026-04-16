@@ -5,7 +5,6 @@
 ════════════════════════════════════════════ */
 const CONFIG = Object.freeze({
   PROXY_BASE: 'https://script.google.com/macros/s/AKfycbwR3d0FY9IqEQr_sIRvOB8beircEz7vXNk1cDYE5QwoFZmgAUQf5mJ7yA3nsd3SL-hd/exec',
-  API_TOKEN: 'igoal-tk-2026',
   CACHE_KEY: 'ig_cache_v3',
   CACHE_TTL: 5 * 60 * 1000,
   AUTO_REFRESH_MS: 5 * 60 * 1000,

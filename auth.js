@@ -1,7 +1,7 @@
 'use strict';
 
 /* ════════════════════════════════════════════
-   AUTH  (with rate limiting)
+   AUTH  (server-side session via Apps Script)
 ════════════════════════════════════════════ */
 const Auth = (() => {
   let attempts = 0;
@@ -28,23 +28,31 @@ const Auth = (() => {
     tick();
   }
 
-  function verify(user, pass) {
-    return user === 'igoal' && pass === 'igoal2026';
-  }
-
   return {
-    login() {
+    async login() {
       if (Date.now() < lockedUntil) return;
 
       const user = Utils.el('login-user').value.trim();
       const pass = Utils.el('login-pass').value;
+      const btn  = Utils.el('btn-login');
 
-      if (verify(user, pass)) {
-        sessionStorage.setItem(CONFIG.SESSION_KEY, '1');
-        sessionStorage.setItem(CONFIG.TOKEN_KEY, CONFIG.API_TOKEN);
-        Utils.el('login-screen').style.display = 'none';
-        Dashboard.init();
-      } else {
+      btn.disabled    = true;
+      btn.textContent = 'Entrando…';
+
+      try {
+        const url  = `${CONFIG.PROXY_BASE}?endpoint=login&user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}`;
+        const res  = await fetch(url);
+        const data = JSON.parse((await res.text()).trim());
+
+        if (data.success && data.token) {
+          sessionStorage.setItem(CONFIG.SESSION_KEY, '1');
+          sessionStorage.setItem(CONFIG.TOKEN_KEY,   data.token);
+          Utils.el('login-screen').style.display = 'none';
+          Dashboard.init();
+        } else {
+          throw new Error('invalid');
+        }
+      } catch (_) {
         attempts++;
         Utils.el('login-pass').value = '';
         Utils.el('login-pass').focus();
@@ -55,14 +63,22 @@ const Auth = (() => {
         } else {
           Utils.show('login-err');
         }
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = 'Entrar';
       }
     },
 
     check() {
-      if (sessionStorage.getItem(CONFIG.SESSION_KEY) === '1') {
+      const hasSession = sessionStorage.getItem(CONFIG.SESSION_KEY) === '1';
+      const hasToken   = !!sessionStorage.getItem(CONFIG.TOKEN_KEY);
+      if (hasSession && hasToken) {
         Utils.el('login-screen').style.display = 'none';
         return true;
       }
+      // Limpa estado parcial
+      sessionStorage.removeItem(CONFIG.SESSION_KEY);
+      sessionStorage.removeItem(CONFIG.TOKEN_KEY);
       return false;
     },
   };
