@@ -247,7 +247,7 @@ const Tasks = (() => {
     },
 
     initYearFilter() {
-      _selYears = [2026];
+      _selYears = [];
       _updateYearBtn();
     },
 
