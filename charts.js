@@ -321,6 +321,9 @@ const Renderer = {
   },
 
   _renderDealsTable(deals) {
+    // Clear search box when filters change
+    const searchEl = Utils.el('deal-search');
+    if (searchEl) searchEl.value = '';
     Utils.setText('tbl-count', `${deals.length} negócio${deals.length !== 1 ? 's' : ''}`);
     const tbody = Utils.el('deals-body');
 
@@ -357,4 +360,42 @@ const Renderer = {
   },
 
   _tableDeals: [],
+
+  searchDeals(query) {
+    const q = (query || '').toLowerCase().trim();
+    const deals = q
+      ? this._tableDeals.filter(d => (d.name || '').toLowerCase().includes(q))
+      : this._tableDeals;
+
+    const tbody = Utils.el('deals-body');
+    Utils.setText('tbl-count', `${deals.length} negócio${deals.length !== 1 ? 's' : ''}`);
+
+    if (!deals.length) {
+      tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="ei">🔍</div><p>Nenhum negócio encontrado</p></div></td></tr>';
+      return;
+    }
+
+    const tmp = document.createElement('tbody');
+    tmp.innerHTML = deals.slice(0, 200).map((d, i) => {
+      const stage  = Deal.stage(d);
+      const isWon  = Deal.isWon(d);
+      const isLost = Deal.isLost(d);
+      const lbl    = isWon ? 'Vendido' : isLost ? 'Perdido' : Deal.isPaused(d) ? 'Pausado' : 'Em Andamento';
+      const cls    = isWon ? 't-won'   : isLost ? 't-lost'  : Deal.isPaused(d) ? 't-paused' : 't-open';
+      const seller = Utils.esc(Deal.seller(d) || '—');
+      return `<tr onclick="UI.drillDeal(${i})">
+        <td>${Utils.esc(d.name || '—')}</td>
+        <td class="td-mono">R$ ${Utils.fmtCurrency(Deal.amount(d))}</td>
+        <td>${Utils.esc(stage)}</td>
+        <td><span class="tag ${cls}">${lbl}</span></td>
+        <td>${seller}</td>
+        <td class="td-mono">${Utils.fmtDate(d.created_at)}</td>
+        <td class="td-mono">${d.closed_at ? Utils.fmtDate(d.closed_at) : '—'}</td>
+      </tr>`;
+    }).join('');
+
+    const fragment = document.createDocumentFragment();
+    while (tmp.firstChild) fragment.appendChild(tmp.firstChild);
+    tbody.replaceChildren(fragment);
+  },
 };
