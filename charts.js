@@ -321,9 +321,11 @@ const Renderer = {
   },
 
   _renderDealsTable(deals) {
-    // Clear search box when filters change
+    Renderer._tableDeals = deals;
+    // Re-apply active search query if any
     const searchEl = Utils.el('deal-search');
-    if (searchEl) searchEl.value = '';
+    const q = searchEl ? searchEl.value.trim() : '';
+    if (q) { this.searchDeals(q); return; }
     Utils.setText('tbl-count', `${deals.length} negócio${deals.length !== 1 ? 's' : ''}`);
     const tbody = Utils.el('deals-body');
 
@@ -331,8 +333,6 @@ const Renderer = {
       tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="ei">💼</div><p>Nenhum negócio encontrado</p></div></td></tr>';
       return;
     }
-
-    Renderer._tableDeals = deals;
 
     const fragment = document.createDocumentFragment();
     const tmp = document.createElement('tbody');
