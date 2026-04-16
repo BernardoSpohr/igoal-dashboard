@@ -402,9 +402,15 @@ tbody td:first-child{color:var(--text);font-weight:600;}
       </div>
       <div class="kpi-card slate fade-up">
         <div class="kpi-top"><div class="kpi-icon-wrap">📊</div><div class="kpi-delta flat" id="d-conv">—</div></div>
-        <div class="kpi-label">Taxa de Conversão</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <div class="kpi-label" style="margin:0">Taxa de Conversão</div>
+          <div style="display:flex;gap:4px;flex-shrink:0">
+            <button id="conv-btn-qtd" onclick="Renderer.setConvMode('qtd')" style="padding:2px 8px;font-size:10px;border-radius:20px;border:1px solid var(--border);background:#1E40AF;color:#fff;cursor:pointer;font-weight:600">Qtd</button>
+            <button id="conv-btn-val" onclick="Renderer.setConvMode('val')" style="padding:2px 8px;font-size:10px;border-radius:20px;border:1px solid var(--border);background:var(--bg2);color:var(--text3);cursor:pointer;font-weight:600">Valor</button>
+          </div>
+        </div>
         <div class="kpi-value" id="v-conv">—</div>
-        <div class="kpi-sub" id="s-conv">ganhos ÷ (ganhos + perdidos)</div>
+        <div class="kpi-sub" id="s-conv">ganhos ÷ total de negócios</div>
       </div>
     </div>
 

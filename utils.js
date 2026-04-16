@@ -77,7 +77,7 @@ function computeStats(deals) {
   const stats = {
     total: deals.length,
     wonCount: 0, lostCount: 0, openCount: 0,
-    wonRevenue: 0, openRevenue: 0,
+    wonRevenue: 0, openRevenue: 0, lostRevenue: 0,
     stageMap: {}, sourceMap: {}, sourceRevMap: {},
   };
 
@@ -92,6 +92,7 @@ function computeStats(deals) {
       stats.sourceRevMap[src] = (stats.sourceRevMap[src] || 0) + amt;
     } else if (Deal.isLost(d)) {
       stats.lostCount++;
+      stats.lostRevenue += amt;
     } else {
       stats.openCount++;
       stats.openRevenue += amt;
@@ -102,8 +103,10 @@ function computeStats(deals) {
   }
 
   // Conversion = won / (won + lost) — excludes pipeline still in progress
-  stats.convRate = stats.total > 0 ? (stats.wonCount / stats.total * 100) : 0;
-  stats.avgTicket = stats.wonCount > 0 ? stats.wonRevenue / stats.wonCount : 0;
+  stats.convRate      = stats.total > 0 ? (stats.wonCount / stats.total * 100) : 0;
+  const closedRev     = stats.wonRevenue + stats.lostRevenue;
+  stats.convRateValue = closedRev > 0 ? (stats.wonRevenue / closedRev * 100) : 0;
+  stats.avgTicket     = stats.wonCount > 0 ? stats.wonRevenue / stats.wonCount : 0;
 
   return stats;
 }

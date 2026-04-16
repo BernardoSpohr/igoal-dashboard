@@ -238,6 +238,27 @@ const Charts = (() => {
    RENDERER  (orchestrates all render calls)
 ════════════════════════════════════════════ */
 const Renderer = {
+  _convMode: 'qtd', // 'qtd' | 'val'
+  _lastStats: null,
+
+  setConvMode(mode) {
+    this._convMode = mode;
+    const btnQtd = Utils.el('conv-btn-qtd');
+    const btnVal = Utils.el('conv-btn-val');
+    if (btnQtd) { btnQtd.style.background = mode === 'qtd' ? '#1E40AF' : 'var(--bg2)'; btnQtd.style.color = mode === 'qtd' ? '#fff' : 'var(--text3)'; }
+    if (btnVal) { btnVal.style.background = mode === 'val' ? '#1E40AF' : 'var(--bg2)'; btnVal.style.color = mode === 'val' ? '#fff' : 'var(--text3)'; }
+    if (this._lastStats) this._renderConvKPI(this._lastStats);
+  },
+
+  _renderConvKPI(stats) {
+    const isVal  = this._convMode === 'val';
+    const rate   = isVal ? stats.convRateValue : stats.convRate;
+    const sub    = isVal ? 'receita ganha ÷ (ganha + perdida)' : 'ganhos ÷ total de negócios';
+    Utils.setText('v-conv', `${rate.toFixed(1)}%`);
+    Utils.setText('s-conv', sub);
+    UI.setDelta('d-conv', rate >= 30 ? 'up' : rate >= 15 ? 'flat' : 'down', `${rate.toFixed(1)}%`);
+  },
+
   renderAll() {
     const filt = State.getFiltered();
     const stats = computeStats(filt);
@@ -268,9 +289,8 @@ const Renderer = {
     Utils.setText('s-won', `R$ ${Utils.fmtCurrency(wonRevenue)} · ticket médio R$ ${Utils.fmtCurrency(avgTicket)}`);
     UI.setDelta('d-won', wonCount > 0 ? 'up' : 'flat', wonCount > 0 ? '↑ bom' : '—');
 
-    Utils.setText('v-conv', `${convRate.toFixed(1)}%`);
-    Utils.setText('s-conv', 'ganhos ÷ total de negócios');
-    UI.setDelta('d-conv', convRate >= 30 ? 'up' : convRate >= 15 ? 'flat' : 'down', `${convRate.toFixed(1)}%`);
+    this._lastStats = stats;
+    this._renderConvKPI(stats);
   },
 
   _renderFunnel(stageMap) {
