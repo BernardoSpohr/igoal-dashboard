@@ -6,9 +6,11 @@
 const Comparison = (() => {
   const _charts = {};
   let _mode = 'deals';
+  let _convMode = 'qtd';
   let _tab  = 'a';
   let _dealsA = [], _dealsB = [];
   let _sellers = [], _stages = [], _statuses = [], _ratings = [];
+  let _lastSA = null, _lastSB = null, _lastLblA = '', _lastLblB = '';
   const MS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const CA = '#2563EB', CB = '#7C3AED';
   const BGA = 'rgba(37,99,235,0.08)', BGB = 'rgba(124,58,237,0.08)';
@@ -102,12 +104,20 @@ const Comparison = (() => {
   }
 
   function _renderKPIs(sA, sB, lblA, lblB) {
+    _lastSA = sA; _lastSB = sB; _lastLblA = lblA; _lastLblB = lblB;
+    const isVal = _convMode === 'val';
+    const convA = isVal ? sA.convRateValue : sA.convRate;
+    const convB = isVal ? sB.convRateValue : sB.convRate;
+    const convToggle = `<div style="display:inline-flex;gap:3px;margin-left:6px;vertical-align:middle">
+      <button onclick="Comparison.setConvMode('qtd')" id="cmp-conv-qtd" style="padding:1px 6px;font-size:9px;border-radius:20px;border:1px solid var(--border);background:${!isVal?'#1E40AF':'var(--bg2)'};color:${!isVal?'#fff':'var(--text3)'};cursor:pointer;font-weight:600">Qtd</button>
+      <button onclick="Comparison.setConvMode('val')" id="cmp-conv-val" style="padding:1px 6px;font-size:9px;border-radius:20px;border:1px solid var(--border);background:${isVal?'#1E40AF':'var(--bg2)'};color:${isVal?'#fff':'var(--text3)'};cursor:pointer;font-weight:600">Valor</button>
+    </div>`;
     const kpis = [
       { label: 'Negócios',      nA: sA.total,        nB: sB.total,        dA: sA.total,       dB: sB.total },
       { label: 'Vendidos',      nA: sA.wonCount,      nB: sB.wonCount,     dA: sA.wonCount,    dB: sB.wonCount },
       { label: 'Em Andamento',  nA: sA.openCount,     nB: sB.openCount,    dA: sA.openCount,   dB: sB.openCount },
       { label: 'Perdidos',      nA: sA.lostCount,     nB: sB.lostCount,    dA: sA.lostCount,   dB: sB.lostCount, inv: true },
-      { label: 'Conversão',     nA: sA.convRate,      nB: sB.convRate,     dA: sA.convRate.toFixed(1) + '%',            dB: sB.convRate.toFixed(1) + '%' },
+      { label: 'Conversão' + convToggle, nA: convA, nB: convB, dA: convA.toFixed(1) + '%', dB: convB.toFixed(1) + '%' },
       { label: 'Receita Ganha', nA: sA.wonRevenue,    nB: sB.wonRevenue,   dA: 'R$ ' + Utils.fmtCurrency(sA.wonRevenue), dB: 'R$ ' + Utils.fmtCurrency(sB.wonRevenue) },
       { label: 'Ticket Médio',  nA: sA.avgTicket,     nB: sB.avgTicket,    dA: 'R$ ' + Utils.fmtCurrency(sA.avgTicket),  dB: 'R$ ' + Utils.fmtCurrency(sB.avgTicket) },
       { label: 'Em Aberto R$',  nA: sA.openRevenue,   nB: sB.openRevenue,  dA: 'R$ ' + Utils.fmtCurrency(sA.openRevenue), dB: 'R$ ' + Utils.fmtCurrency(sB.openRevenue) },
@@ -266,6 +276,11 @@ const Comparison = (() => {
   }
 
   return {
+    setConvMode(mode) {
+      _convMode = mode;
+      if (_lastSA) _renderKPIs(_lastSA, _lastSB, _lastLblA, _lastLblB);
+    },
+
     open() {
       Utils.el('cmp-overlay').classList.add('open');
       Utils.el('cmp-panel').classList.add('open');
