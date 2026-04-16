@@ -276,10 +276,10 @@ const Renderer = {
   },
 
   _renderKPIs(stats) {
-    const { total, wonCount, openCount, openRevenue, wonRevenue, convRate, avgTicket } = stats;
+    const { total, wonCount, openCount, openRevenue, wonRevenue, totalRevenue, convRate, avgTicket } = stats;
 
     Utils.animateNumber('v-leads', total);
-    Utils.setText('s-leads', `${total} negócios no período`);
+    Utils.setText('s-leads', `R$ ${Utils.fmtCurrency(totalRevenue)} em valor total`);
     UI.setDelta('d-leads', 'flat', `${total}`);
 
     Utils.animateNumber('v-deals', openCount);
