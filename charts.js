@@ -263,17 +263,21 @@ const Renderer = {
     const filt  = State.getFiltered();
     const stats = computeStats(filt);
 
-    // Count only deals created in the selected period
+    // Count deals created in the selected period, respecting funnel filter
     const selMonths = State.getMonths();
     const selYears  = State.getYears();
-    const createdCount = State.getRaw().deals.filter(d => {
+    const funnel = Utils.el('f-funnel').value;
+    const funnelOk = funnel === 'carteira'
+      ? (d) => Deal.stage(d).includes('Carteira')
+      : (d) => Deal.stage(d).includes('Funil');
+    stats.createdCount = State.getRaw().deals.filter(d => {
+      if (!funnelOk(d)) return false;
       if (!d.created_at) return false;
       const dt = new Date(d.created_at);
       if (selMonths.length > 0 && !selMonths.includes(dt.getMonth() + 1)) return false;
       if (selYears.length  > 0 && !selYears.includes(dt.getFullYear()))   return false;
       return true;
     }).length;
-    stats.createdCount = createdCount;
 
     this._renderKPIs(stats);
     Charts.renderDonut('donutChart',  'donut',  stats);
