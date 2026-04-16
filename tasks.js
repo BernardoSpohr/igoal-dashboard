@@ -75,7 +75,7 @@ const Tasks = (() => {
   }
 
   function _filtered() {
-    return _allTasks().filter(t => {
+    const tasks = _allTasks().filter(t => {
       if (_selStatuses.length > 0 && !_selStatuses.includes(_taskStatus(t))) return false;
       if (_sellers.length > 0 && !_sellers.includes(_taskSeller(t))) return false;
       const due = t.due_date || t.date;
@@ -88,6 +88,18 @@ const Tasks = (() => {
       }
       return true;
     });
+
+    // Sort by due date ascending (closest first); tasks without date go to the end
+    tasks.sort((a, b) => {
+      const da = a.due_date || a.date;
+      const db = b.due_date || b.date;
+      if (!da && !db) return 0;
+      if (!da) return 1;
+      if (!db) return -1;
+      return new Date(da) - new Date(db);
+    });
+
+    return tasks;
   }
 
   return {
