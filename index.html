@@ -375,8 +375,14 @@ tbody td:first-child{color:var(--text);font-weight:600;}
         <div id="seller-list"></div>
       </div>
     </div>
-    <input id="company-search" type="text" placeholder="🔍 Empresa..." oninput="Filters.onCompanySearch(this.value)"
-      style="padding:7px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:inherit;font-size:12px;color:var(--text2);background:var(--surface2);outline:none;min-width:160px;">
+    <div style="position:relative;display:inline-block;">
+      <input id="company-search" type="text" placeholder="🔍 Empresa..." autocomplete="off"
+        oninput="Filters.onCompanySearch(this.value)"
+        onkeydown="Filters.onCompanyKeydown(event)"
+        onfocus="Filters.showCompanySuggestions()"
+        style="padding:7px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:inherit;font-size:12px;color:var(--text2);background:var(--surface2);outline:none;min-width:160px;">
+      <div id="company-suggestions" style="display:none;position:absolute;top:100%;left:0;z-index:999;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-sm);box-shadow:0 4px 16px rgba(0,0,0,.15);max-height:220px;overflow-y:auto;min-width:220px;margin-top:2px;"></div>
+    </div>
     <button class="btn-clear" id="btn-clear-filters" onclick="Filters.clear()">✕ Limpar filtros</button>
     <span class="period-label">Período: <span id="period-display">—</span></span>
   </div>
@@ -781,17 +787,17 @@ tbody td:first-child{color:var(--text);font-weight:600;}
   </div>
 </div>
 
-<script src="config.js?v=23"></script>
-<script src="state.js?v=23"></script>
-<script src="utils.js?v=23"></script>
-<script src="auth.js?v=23"></script>
-<script src="api.js?v=23"></script>
-<script src="dashboard.js?v=23"></script>
-<script src="filters.js?v=23"></script>
-<script src="charts.js?v=23"></script>
-<script src="ui.js?v=23"></script>
-<script src="comparison.js?v=23"></script>
-<script src="tasks.js?v=23"></script>
-<script src="boot.js?v=23"></script>
+<script src="config.js?v=24"></script>
+<script src="state.js?v=24"></script>
+<script src="utils.js?v=24"></script>
+<script src="auth.js?v=24"></script>
+<script src="api.js?v=24"></script>
+<script src="dashboard.js?v=24"></script>
+<script src="filters.js?v=24"></script>
+<script src="charts.js?v=24"></script>
+<script src="ui.js?v=24"></script>
+<script src="comparison.js?v=24"></script>
+<script src="tasks.js?v=24"></script>
+<script src="boot.js?v=24"></script>
 </body>
 </html>

@@ -141,12 +141,86 @@ const Filters = {
     State.setCompanySearch('');
     const cs = Utils.el('company-search');
     if (cs) cs.value = '';
+    const sugg = Utils.el('company-suggestions');
+    if (sugg) sugg.style.display = 'none';
     this.apply();
   },
+
+  _suggestionIndex: -1,
 
   onCompanySearch(q) {
     State.setCompanySearch(q);
     this.apply();
+    this._renderCompanySuggestions(q);
+  },
+
+  showCompanySuggestions() {
+    const q = (Utils.el('company-search').value || '').trim();
+    this._renderCompanySuggestions(q);
+  },
+
+  _renderCompanySuggestions(q) {
+    const box = Utils.el('company-suggestions');
+    const lq  = q.toLowerCase();
+    const all = [...new Set(
+      State.getRaw().deals.map(d => (d.name || '').trim()).filter(Boolean)
+    )].sort();
+
+    const matches = lq
+      ? all.filter(n => n.toLowerCase().includes(lq))
+      : [];
+
+    this._suggestionIndex = -1;
+
+    if (!matches.length) { box.style.display = 'none'; return; }
+
+    box.innerHTML = matches.slice(0, 50).map((n, i) =>
+      `<div data-idx="${i}" data-val="${Utils.esc(n)}"
+        onmousedown="Filters._selectCompany(this.dataset.val)"
+        onmouseover="Filters._highlightSuggestion(${i})"
+        style="padding:7px 12px;font-size:12px;cursor:pointer;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${Utils.esc(n)}</div>`
+    ).join('');
+    box.style.display = '';
+  },
+
+  _highlightSuggestion(idx) {
+    const box = Utils.el('company-suggestions');
+    [...box.children].forEach((el, i) => {
+      el.style.background = i === idx ? 'var(--surface2)' : '';
+    });
+    this._suggestionIndex = idx;
+  },
+
+  _selectCompany(name) {
+    const inp = Utils.el('company-search');
+    inp.value = name;
+    Utils.el('company-suggestions').style.display = 'none';
+    State.setCompanySearch(name);
+    this.apply();
+  },
+
+  onCompanyKeydown(e) {
+    const box = Utils.el('company-suggestions');
+    if (box.style.display === 'none') return;
+    const items = [...box.children];
+    if (!items.length) return;
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      this._suggestionIndex = Math.min(this._suggestionIndex + 1, items.length - 1);
+      this._highlightSuggestion(this._suggestionIndex);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      this._suggestionIndex = Math.max(this._suggestionIndex - 1, 0);
+      this._highlightSuggestion(this._suggestionIndex);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (this._suggestionIndex >= 0 && items[this._suggestionIndex]) {
+        this._selectCompany(items[this._suggestionIndex].dataset.val);
+      }
+    } else if (e.key === 'Escape') {
+      box.style.display = 'none';
+    }
   },
 
   toggleSellerMenu(e) {
@@ -339,6 +413,13 @@ const Filters = {
 
 // Close menus on outside click
 document.addEventListener('click', (e) => {
+  // Company suggestions
+  const sugg = Utils.el('company-suggestions');
+  const inp  = Utils.el('company-search');
+  if (sugg && inp && !sugg.contains(e.target) && e.target !== inp) {
+    sugg.style.display = 'none';
+  }
+
   [
     ['f-seller-menu','f-seller-btn'],
     ['f-month-menu','f-month-btn'],
