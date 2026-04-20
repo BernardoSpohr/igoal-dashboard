@@ -9,6 +9,8 @@ const Tasks = (() => {
   let _selMonths = [];
   let _selYears  = [];
   let _builtSellers = false;
+  let _dealSearch = '';
+  let _dealSuggIdx = -1;
 
   const MONTHS_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
@@ -74,10 +76,16 @@ const Tasks = (() => {
       _selStatuses.length === 0 ? 'Todos os Status' : _selStatuses.map(s => labels[s] || s).join(', '));
   }
 
+  function _dealName(t) {
+    return ((t.deal && (t.deal.name || t.deal.title)) || t.deal_name || '').trim();
+  }
+
   function _filtered() {
+    const dq = _dealSearch.toLowerCase();
     const tasks = _allTasks().filter(t => {
       if (_selStatuses.length > 0 && !_selStatuses.includes(_taskStatus(t))) return false;
       if (_sellers.length > 0 && !_sellers.includes(_taskSeller(t))) return false;
+      if (dq && !_dealName(t).toLowerCase().includes(dq)) return false;
       const due = t.due_date || t.date;
       if (_selMonths.length > 0 || _selYears.length > 0) {
         if (!due) return false;
@@ -225,12 +233,80 @@ const Tasks = (() => {
       this.render();
     },
 
+    onDealSearch(q) {
+      _dealSearch = q.trim();
+      this._renderDealSuggestions(q);
+      this.render();
+    },
+
+    showDealSuggestions() {
+      const q = (Utils.el('tasks-deal-search').value || '').trim();
+      this._renderDealSuggestions(q);
+    },
+
+    _renderDealSuggestions(q) {
+      const box = Utils.el('tasks-deal-suggestions');
+      const lq  = q.toLowerCase();
+      const all = [...new Set(
+        _allTasks().map(_dealName).filter(Boolean)
+      )].sort();
+
+      const matches = lq ? all.filter(n => n.toLowerCase().includes(lq)) : [];
+      _dealSuggIdx = -1;
+
+      if (!matches.length) { box.style.display = 'none'; return; }
+
+      box.innerHTML = matches.slice(0, 50).map((n, i) =>
+        `<div data-idx="${i}" data-val="${Utils.esc(n)}"
+          onmousedown="Tasks._selectDeal(this.dataset.val)"
+          onmouseover="Tasks._highlightDeal(${i})"
+          style="padding:7px 12px;font-size:12px;cursor:pointer;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${Utils.esc(n)}</div>`
+      ).join('');
+      box.style.display = '';
+    },
+
+    _highlightDeal(idx) {
+      const box = Utils.el('tasks-deal-suggestions');
+      [...box.children].forEach((el, i) => {
+        el.style.background = i === idx ? 'var(--surface2)' : '';
+      });
+      _dealSuggIdx = idx;
+    },
+
+    _selectDeal(name) {
+      Utils.el('tasks-deal-search').value = name;
+      Utils.el('tasks-deal-suggestions').style.display = 'none';
+      _dealSearch = name;
+      this.render();
+    },
+
+    onDealKeydown(e) {
+      const box = Utils.el('tasks-deal-suggestions');
+      if (box.style.display === 'none') return;
+      const items = [...box.children];
+      if (!items.length) return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        _dealSuggIdx = Math.min(_dealSuggIdx + 1, items.length - 1);
+        this._highlightDeal(_dealSuggIdx);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        _dealSuggIdx = Math.max(_dealSuggIdx - 1, 0);
+        this._highlightDeal(_dealSuggIdx);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (_dealSuggIdx >= 0 && items[_dealSuggIdx]) this._selectDeal(items[_dealSuggIdx].dataset.val);
+      } else if (e.key === 'Escape') {
+        box.style.display = 'none';
+      }
+    },
+
     clearFilters() {
       _sellers     = [];
       _selStatuses = [];
       _selMonths   = [];
       _selYears    = [];
-      _selStatuses = [];
+      _dealSearch  = '';
       Utils.el('tasks-status-all').checked = true;
       document.querySelectorAll('#tasks-status-list input').forEach(cb => { cb.checked = false; });
       _updateStatusBtn();
@@ -243,6 +319,10 @@ const Tasks = (() => {
       Utils.setText('tasks-f-seller-btn', 'Todos os Responsáveis');
       _updateMonthBtn();
       _updateYearBtn();
+      const inp = Utils.el('tasks-deal-search');
+      if (inp) inp.value = '';
+      const sugg = Utils.el('tasks-deal-suggestions');
+      if (sugg) sugg.style.display = 'none';
       this.render();
     },
 
@@ -290,7 +370,8 @@ const Tasks = (() => {
       const active = _selStatuses.length > 0
         || _sellers.length > 0
         || _selMonths.length > 0
-        || _selYears.length  > 0;
+        || _selYears.length  > 0
+        || _dealSearch !== '';
       Utils.el('tasks-btn-clear').style.display = active ? 'inline-flex' : 'none';
     },
   };

@@ -420,6 +420,13 @@ document.addEventListener('click', (e) => {
     sugg.style.display = 'none';
   }
 
+  // Tasks deal search suggestions
+  const tSugg = Utils.el('tasks-deal-suggestions');
+  const tInp  = Utils.el('tasks-deal-search');
+  if (tSugg && tInp && !tSugg.contains(e.target) && e.target !== tInp) {
+    tSugg.style.display = 'none';
+  }
+
   [
     ['f-seller-menu','f-seller-btn'],
     ['f-month-menu','f-month-btn'],
