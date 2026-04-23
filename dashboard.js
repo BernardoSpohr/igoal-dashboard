@@ -47,19 +47,15 @@ const Dashboard = {
 
   async _fetchDealsBackground() {
     try {
-      // 1) Primeiros 200 negócios
+      // 1) Atualiza todos os negócios primeiro
       const page1 = await API.fetchPage(1);
       const raw = State.getRaw();
       if (page1.deals?.length) raw.deals = page1.deals;
       Filters.apply();
-
-      // 2) Primeiras 200 tarefas
-      await this._fetchTasksPage1();
-
-      // 3) Resto dos negócios
       if (page1.has_more) await this._fetchRemaining(2);
 
-      // 4) Resto das tarefas
+      // 2) Depois atualiza todas as tarefas
+      await this._fetchTasksPage1();
       await this._fetchTasksBackground(2);
 
       Cache.save(raw.deals, raw.tasks);
