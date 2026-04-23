@@ -137,9 +137,9 @@ const Charts = (() => {
             },
             {
               label: 'Vendidos',
-              data: wonVals, borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,0.08)',
-              fill: false, tension: 0.35, pointBackgroundColor: '#16a34a',
-              pointRadius: 3, borderWidth: 2, borderDash: [],
+              data: wonVals, borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,0.08)',
+              fill: false, tension: 0.35, pointBackgroundColor: '#f97316',
+              pointRadius: 3, borderWidth: 2,
             },
           ],
         },
