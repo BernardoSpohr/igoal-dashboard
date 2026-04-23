@@ -426,7 +426,7 @@ tbody td:first-child{color:var(--text);font-weight:600;}
     <div class="row-2-1">
       <div class="chart-card">
         <div class="card-head">
-          <div><div class="card-title">Negócios por Período</div><div class="card-sub" id="line-sub">Visão do período selecionado</div></div>
+          <div><div class="card-title">Negócios por Período</div><div class="card-sub" id="line-sub">Azul = criados · Laranja = vendidos (por fechamento)</div></div>
           <div class="pill-row">
             <button class="pill active" id="pill-vol" onclick="Charts.setLineMode('deals',this)">Volume</button>
             <button class="pill" onclick="Charts.setLineMode('value',this)">Valor R$</button>
@@ -455,7 +455,7 @@ tbody td:first-child{color:var(--text);font-weight:600;}
     <div class="sec-head"><div class="sec-title">Receita &amp; Resultados</div></div>
     <div class="row-1-1">
       <div class="chart-card">
-        <div class="card-head"><div><div class="card-title">Receita por Período (R$)</div><div class="card-sub" id="rev-sub">Valor de negócios ganhos</div></div></div>
+        <div class="card-head"><div><div class="card-title">Receita por Período (R$)</div><div class="card-sub" id="rev-sub">Valor de negócios ganhos · por data de fechamento</div></div></div>
         <div class="chart-h h200"><canvas id="revChart"></canvas></div>
       </div>
       <div class="chart-card">
@@ -608,7 +608,7 @@ tbody td:first-child{color:var(--text);font-weight:600;}
           <div><div class="card-title">
             <span class="cmp-dot" style="background:#2563EB"></span>Período A &nbsp;
             <span class="cmp-dot" style="background:#7C3AED"></span>Período B
-          </div><div class="card-sub">Negócios criados por dia</div></div>
+          </div><div class="card-sub">Negócios criados por dia · data de <strong>criação</strong></div></div>
           <div class="pill-row">
             <button class="pill active" id="cmp-pill-vol" onclick="Comparison.setMode('deals',this)">Volume</button>
             <button class="pill" id="cmp-pill-val" onclick="Comparison.setMode('value',this)">Valor R$</button>
@@ -624,7 +624,7 @@ tbody td:first-child{color:var(--text);font-weight:600;}
         <div class="card-head"><div><div class="card-title">
           <span class="cmp-dot" style="background:#2563EB"></span>Período A &nbsp;
           <span class="cmp-dot" style="background:#7C3AED"></span>Período B — Receita por Dia (R$)
-        </div><div class="card-sub">Valor de negócios ganhos</div></div></div>
+        </div><div class="card-sub">Valor de negócios ganhos · data de <strong>fechamento</strong></div></div></div>
         <div class="chart-h h200"><canvas id="cmpRevChart"></canvas></div>
       </div>
     </div>
@@ -795,17 +795,17 @@ tbody td:first-child{color:var(--text);font-weight:600;}
   </div>
 </div>
 
-<script src="config.js?v=31"></script>
-<script src="state.js?v=31"></script>
-<script src="utils.js?v=31"></script>
-<script src="auth.js?v=31"></script>
-<script src="api.js?v=31"></script>
-<script src="dashboard.js?v=31"></script>
-<script src="filters.js?v=31"></script>
-<script src="charts.js?v=31"></script>
-<script src="ui.js?v=31"></script>
-<script src="comparison.js?v=31"></script>
-<script src="tasks.js?v=31"></script>
-<script src="boot.js?v=31"></script>
+<script src="config.js?v=32"></script>
+<script src="state.js?v=32"></script>
+<script src="utils.js?v=32"></script>
+<script src="auth.js?v=32"></script>
+<script src="api.js?v=32"></script>
+<script src="dashboard.js?v=32"></script>
+<script src="filters.js?v=32"></script>
+<script src="charts.js?v=32"></script>
+<script src="ui.js?v=32"></script>
+<script src="comparison.js?v=32"></script>
+<script src="tasks.js?v=32"></script>
+<script src="boot.js?v=32"></script>
 </body>
 </html>
