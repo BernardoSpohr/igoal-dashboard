@@ -750,7 +750,8 @@ const Charts = (() => {
         : (arr) => arr.length;
       const MS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
       const activeYears = selYears.length > 0 ? selYears : [2021,2022,2023,2024,2025,2026];
-      const labels = [], vals = [];
+      const labels = [], vals = [], wonVals = [];
+      const wonDeals = filt.filter(x => Deal.isWon(x) && x.closed_at);
 
       if (selMonths.length === 1 && selYears.length === 1) {
         // Dias do mês/ano específico
@@ -762,6 +763,10 @@ const Charts = (() => {
           vals.push(amtFn(filt.filter(x => {
             if (!x.created_at) return false;
             const cd = new Date(x.created_at);
+            return cd.getFullYear() === yr && cd.getMonth() === mo && cd.getDate() === i;
+          })));
+          wonVals.push(amtFn(wonDeals.filter(x => {
+            const cd = new Date(x.closed_at);
             return cd.getFullYear() === yr && cd.getMonth() === mo && cd.getDate() === i;
           })));
         }
@@ -776,6 +781,10 @@ const Charts = (() => {
             const cd = new Date(x.created_at);
             return cd.getFullYear() === yr && cd.getMonth() === m;
           })));
+          wonVals.push(amtFn(wonDeals.filter(x => {
+            const cd = new Date(x.closed_at);
+            return cd.getFullYear() === yr && cd.getMonth() === m;
+          })));
         }
       } else {
         // Por ano
@@ -786,6 +795,9 @@ const Charts = (() => {
             if (!x.created_at) return false;
             return new Date(x.created_at).getFullYear() === yr;
           })));
+          wonVals.push(amtFn(wonDeals.filter(x => {
+            return new Date(x.closed_at).getFullYear() === yr;
+          })));
         }
       }
 
@@ -794,6 +806,7 @@ const Charts = (() => {
       if (_charts.line) {
         _charts.line.data.labels = labels;
         _charts.line.data.datasets[0].data = vals;
+        _charts.line.data.datasets[1].data = wonVals;
         _charts.line.update();
         return;
       }
@@ -802,15 +815,29 @@ const Charts = (() => {
         type: 'line',
         data: {
           labels,
-          datasets: [{
-            data: vals, borderColor: '#2563EB', backgroundColor: _gradient(ctx),
-            fill: true, tension: 0.35, pointBackgroundColor: '#2563EB',
-            pointRadius: 3, borderWidth: 2,
-          }],
+          datasets: [
+            {
+              label: 'Negócios',
+              data: vals, borderColor: '#2563EB', backgroundColor: _gradient(ctx),
+              fill: true, tension: 0.35, pointBackgroundColor: '#2563EB',
+              pointRadius: 3, borderWidth: 2,
+            },
+            {
+              label: 'Vendidos',
+              data: wonVals, borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,0.08)',
+              fill: false, tension: 0.35, pointBackgroundColor: '#f97316',
+              pointRadius: 3, borderWidth: 2,
+            },
+          ],
         },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
+          plugins: {
+            legend: {
+              display: true, position: 'top', align: 'end',
+              labels: { boxWidth: 12, font: { size: 11 }, color: '#64748b', usePointStyle: true, pointStyleWidth: 8 },
+            },
+          },
           scales: {
             x: { ...BASE_SCALES.x, ticks: { ...BASE_SCALES.x.ticks, maxTicksLimit: 12, maxRotation: 45 } },
             y: BASE_SCALES.y,
