@@ -24,41 +24,67 @@ const Dashboard = {
     if (cached) {
       State.setRaw(cached.deals, cached.tasks);
       this._showApp();
-      // Refresh both in parallel in background
+      // Refresh seguindo a mesma prioridade em background
       this._fetchDealsBackground();
-      this._fetchTasksBackground();
       return;
     }
 
-    // Show app as soon as first page of deals arrives
+    // 1) Primeiros 200 negócios → mostra o app
+    Utils.setText('loading-msg', 'Carregando negócios...');
     const page1 = await API.fetchPage(1);
     State.setRaw(page1.deals || [], []);
     this._showApp();
 
-    // Load remaining deal pages AND all task pages in parallel
-    const dealsPromise = page1.has_more ? this._fetchRemaining(2) : Promise.resolve();
-    const tasksPromise = this._fetchTasksBackground();
-    await Promise.all([dealsPromise, tasksPromise]);
+    // 2) Primeiras 200 tarefas
+    await this._fetchTasksPage1();
+
+    // 3) Resto dos negócios
+    if (page1.has_more) await this._fetchRemaining(2);
+
+    // 4) Resto das tarefas
+    await this._fetchTasksBackground(2);
   },
 
   async _fetchDealsBackground() {
     try {
+      // 1) Primeiros 200 negócios
       const page1 = await API.fetchPage(1);
       const raw = State.getRaw();
       if (page1.deals?.length) raw.deals = page1.deals;
       Filters.apply();
+
+      // 2) Primeiras 200 tarefas
+      await this._fetchTasksPage1();
+
+      // 3) Resto dos negócios
       if (page1.has_more) await this._fetchRemaining(2);
+
+      // 4) Resto das tarefas
+      await this._fetchTasksBackground(2);
+
       Cache.save(raw.deals, raw.tasks);
     } catch (_) {}
   },
 
-  async _fetchTasksBackground() {
+  async _fetchTasksPage1() {
+    const allowed = CONFIG.TASK_SELLERS;
+    const _seller = (t) => (t.users?.[0]?.name || t.user?.name || t.responsible_name || '').toLowerCase();
+    const _keep   = (t) => allowed.some(n => _seller(t).includes(n));
+    try {
+      const res = await API.get('tasks&page=1&limit=200').catch(() => ({}));
+      const batch = (res.tasks || []).filter(_keep);
+      State.getRaw().tasks = batch;
+      Tasks.rebuildSellers();
+    } catch (_) {}
+  },
+
+  async _fetchTasksBackground(startPage = 1) {
     const allowed = CONFIG.TASK_SELLERS;
     const _seller = (t) => (t.users?.[0]?.name || t.user?.name || t.responsible_name || '').toLowerCase();
     const _keep   = (t) => allowed.some(n => _seller(t).includes(n));
 
     try {
-      let page = 1;
+      let page = startPage;
       while (page <= 50) {
         const res = await API.get(`tasks&page=${page}&limit=200`).catch(() => ({}));
         const batch = (res.tasks || []).filter(_keep);
@@ -105,9 +131,9 @@ const Dashboard = {
       if (page1.deals?.length) raw.deals = page1.deals;
       Filters.apply();
       UI.setStatus(true);
-      const dealsPromise = page1.has_more ? this._fetchRemaining(2) : Promise.resolve();
-      const tasksPromise = this._fetchTasksBackground();
-      await Promise.all([dealsPromise, tasksPromise]);
+      await this._fetchTasksPage1();
+      if (page1.has_more) await this._fetchRemaining(2);
+      await this._fetchTasksBackground(2);
     } catch (err) {
       console.error('[Dashboard.refresh]', err);
       UI.setStatus(false);
