@@ -9,7 +9,7 @@ const Comparison = (() => {
   let _convMode = 'qtd';
   let _tab  = 'a';
   let _dealsA = [], _dealsB = [];
-  let _sellers = [], _stages = [], _statuses = [], _ratings = [];
+  let _sellers = [], _stages = [], _statuses = [], _ratings = [], _segments = [];
   let _lastSA = null, _lastSB = null, _lastLblA = '', _lastLblB = '';
   const MS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
   const CA = '#2563EB', CB = '#7C3AED';
@@ -58,6 +58,10 @@ const Comparison = (() => {
       }
       if (_sellers.length > 0 && !_sellers.includes(Deal.seller(d))) return false;
       if (_ratings.length > 0 && !_ratings.includes(String(d.rating))) return false;
+      if (_segments.length > 0) {
+        const dealSegs = Deal.segments(d);
+        if (!dealSegs.some(s => _segments.includes(s))) return false;
+      }
       return true;
     });
   }
@@ -68,6 +72,23 @@ const Comparison = (() => {
         <input type="checkbox" value="${Utils.esc(s)}"${_sellers.includes(s) ? ' checked' : ''} onchange="Comparison.onSellerCheck()"> ${Utils.esc(s)}
       </label>`
     ).join('');
+  }
+
+  function _buildSegmentList(segments) {
+    // Remove segmentos que não existem mais
+    const valid = _segments.filter(s => segments.includes(s));
+    if (valid.length !== _segments.length) _segments = valid;
+
+    Utils.el('cmp-segment-list').innerHTML = segments.map(s =>
+      `<label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer">
+        <input type="checkbox" value="${Utils.esc(s)}"${valid.includes(s) ? ' checked' : ''} onchange="Comparison.onSegmentCheck()"> ${Utils.esc(s)}
+      </label>`
+    ).join('');
+    _updateSegmentBtn();
+  }
+
+  function _updateSegmentBtn() {
+    Utils.setText('cmp-f-segment-btn', _segments.length === 0 ? 'Todos os Segmentos' : `${_segments.length} segmento(s)`);
   }
 
   function _updateStageBtn() {
@@ -394,6 +415,10 @@ const Comparison = (() => {
       Utils.el('cmp-seller-all').checked = true;
       document.querySelectorAll('#cmp-seller-list input').forEach(cb => { cb.checked = false; });
       Utils.setText('cmp-f-seller-btn', 'Todos os Vendedores');
+      _segments = [];
+      Utils.el('cmp-segment-all').checked = true;
+      document.querySelectorAll('#cmp-segment-list input').forEach(cb => { cb.checked = false; });
+      _updateSegmentBtn();
       this.render();
     },
 
@@ -426,6 +451,27 @@ const Comparison = (() => {
       this.render();
     },
 
+    toggleSegmentMenu(e) {
+      e.stopPropagation();
+      const m = Utils.el('cmp-f-segment-menu');
+      m.style.display = m.style.display === 'none' ? '' : 'none';
+    },
+
+    onSegmentAll() {
+      _segments = [];
+      document.querySelectorAll('#cmp-segment-list input').forEach(cb => { cb.checked = Utils.el('cmp-segment-all').checked; });
+      _updateSegmentBtn();
+      this.render();
+    },
+
+    onSegmentCheck() {
+      _segments = [];
+      document.querySelectorAll('#cmp-segment-list input:checked').forEach(cb => _segments.push(cb.value));
+      Utils.el('cmp-segment-all').checked = _segments.length === 0;
+      _updateSegmentBtn();
+      this.render();
+    },
+
     render() {
       const yrA = parseInt(Utils.el('cmp-year-a').value);
       const moA = parseInt(Utils.el('cmp-month-a').value);
@@ -439,6 +485,10 @@ const Comparison = (() => {
 
       const allSellers = [...new Set(rawA.concat(rawB).map(Deal.seller).filter(Boolean))].sort();
       _buildSellerList(allSellers);
+
+      const segSet = new Set();
+      rawA.concat(rawB).forEach(d => Deal.segments(d).forEach(s => segSet.add(s)));
+      _buildSegmentList([...segSet].sort());
 
       _dealsA = _applyFilters(rawA);
       _dealsB = _applyFilters(rawB);
@@ -478,7 +528,8 @@ const Comparison = (() => {
         || _stages.length > 0
         || _statuses.length > 0
         || _ratings.length > 0
-        || _sellers.length > 0;
+        || _sellers.length > 0
+        || _segments.length > 0;
       Utils.el('cmp-btn-clear').style.display = active ? 'inline-flex' : 'none';
     },
   };

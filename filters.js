@@ -498,6 +498,7 @@ document.addEventListener('click', (e) => {
     ['cmp-f-stage-menu','cmp-f-stage-btn'],
     ['cmp-f-status-menu','cmp-f-status-btn'],
     ['cmp-f-seller-menu','cmp-f-seller-btn'],
+    ['cmp-f-segment-menu','cmp-f-segment-btn'],
   ].forEach(([mid, bid]) => {
     const m = Utils.el(mid), b = Utils.el(bid);
     if (m && b && !m.contains(e.target) && e.target !== b) m.style.display = 'none';
