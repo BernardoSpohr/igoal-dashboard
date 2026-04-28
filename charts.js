@@ -396,6 +396,8 @@ const Renderer = {
   },
 
   _renderDealsTable(deals) {
+    // Ordena por valor decrescente (maior primeiro)
+    deals = [...deals].sort((a, b) => Deal.amount(b) - Deal.amount(a));
     Renderer._tableDeals = deals;
     // Re-apply active search query if any
     const searchEl = Utils.el('deal-search');
