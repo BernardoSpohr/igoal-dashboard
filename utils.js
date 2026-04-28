@@ -62,6 +62,10 @@ const Deal = {
   stage:  (d) => (d.deal_stage && typeof d.deal_stage === 'object' ? d.deal_stage.name : d.deal_stage) || 'Sem etapa',
   source: (d) => (d.deal_source && typeof d.deal_source === 'object' ? d.deal_source.name : d.deal_source) || d.lead_source || d.source || 'Direto',
   seller: (d) => (d.user && d.user.name) || d.responsible_name || '',
+  segments: (d) => {
+    const segs = d.organization?.organization_segments || d.organization_segments || [];
+    return segs.map(s => (typeof s === 'object' ? s.name : s)).filter(Boolean);
+  },
   isWon:    (d) => d.win === true || d.win === 1,
   isLost:   (d) => !!(d.closed_at && !Deal.isWon(d)),
   isPaused: (d) => d.hold === true,

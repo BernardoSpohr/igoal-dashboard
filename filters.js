@@ -16,6 +16,7 @@ const Filters = {
     const selStages   = State.getStages();
     const selStatuses = State.getStatuses();
     const selRatings  = State.getRatings();
+    const selSegments = State.getSegments();
     const selMonths = State.getMonths();
     const selYears  = State.getYears();
     const companyQ  = State.getCompanySearch().toLowerCase().trim();
@@ -67,6 +68,12 @@ const Filters = {
       // Rating
       if (selRatings.length > 0 && !selRatings.includes(String(d.rating))) return false;
 
+      // Segment (deal passa se tiver pelo menos 1 segmento selecionado)
+      if (selSegments.length > 0) {
+        const dealSegs = Deal.segments(d);
+        if (!dealSegs.some(s => selSegments.includes(s))) return false;
+      }
+
       // Company search
       if (companyQ && !(d.name || '').toLowerCase().includes(companyQ)) return false;
 
@@ -95,6 +102,11 @@ const Filters = {
     const allSellers = [...new Set(State.getRaw().deals.map(Deal.seller).filter(Boolean))].sort();
     this._buildSellerList(allSellers);
 
+    // Rebuild segment list (flatten all segments from all deals)
+    const segSet = new Set();
+    State.getRaw().deals.forEach(d => Deal.segments(d).forEach(s => segSet.add(s)));
+    this._buildSegmentList([...segSet].sort());
+
     // Show/hide clear button
     Utils.el('btn-clear-filters').style.display = isActive ? 'inline-flex' : 'none';
 
@@ -109,6 +121,7 @@ const Filters = {
       || State.getStatuses().length > 0
       || State.getRatings().length  > 0
       || State.getSellers().length  > 0
+      || State.getSegments().length > 0
       || State.getCompanySearch()   !== '';
   },
 
@@ -138,6 +151,10 @@ const Filters = {
     Utils.el('seller-all').checked = true;
     document.querySelectorAll('#seller-list input').forEach(cb => { cb.checked = false; });
     this._updateSellerBtn();
+    State.setSegments([]);
+    Utils.el('segment-all').checked = true;
+    document.querySelectorAll('#segment-list input').forEach(cb => { cb.checked = false; });
+    this._updateSegmentBtn();
     State.setCompanySearch('');
     const cs = Utils.el('company-search');
     if (cs) cs.value = '';
@@ -409,6 +426,48 @@ const Filters = {
       </label>`
     ).join('');
   },
+
+  toggleSegmentMenu(e) {
+    e.stopPropagation();
+    const m = Utils.el('f-segment-menu');
+    m.style.display = m.style.display === 'none' ? '' : 'none';
+  },
+
+  onSegmentAll() {
+    const checked = Utils.el('segment-all').checked;
+    State.setSegments([]);
+    document.querySelectorAll('#segment-list input').forEach(cb => { cb.checked = checked; });
+    this._updateSegmentBtn();
+    this.apply();
+  },
+
+  onSegmentCheck() {
+    const sel = [];
+    document.querySelectorAll('#segment-list input:checked').forEach(cb => sel.push(cb.value));
+    State.setSegments(sel);
+    Utils.el('segment-all').checked = sel.length === 0;
+    this._updateSegmentBtn();
+    this.apply();
+  },
+
+  _updateSegmentBtn() {
+    const n = State.getSegments().length;
+    Utils.setText('f-segment-btn', n === 0 ? 'Todos os Segmentos' : `${n} segmento(s)`);
+  },
+
+  _buildSegmentList(segments) {
+    const cur = State.getSegments();
+    // Remove segments that no longer exist
+    const valid = cur.filter(s => segments.includes(s));
+    if (valid.length !== cur.length) State.setSegments(valid);
+
+    Utils.el('segment-list').innerHTML = segments.map(s =>
+      `<label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer">
+        <input type="checkbox" value="${Utils.esc(s)}"${valid.includes(s) ? ' checked' : ''} onchange="Filters.onSegmentCheck()"> ${Utils.esc(s)}
+      </label>`
+    ).join('');
+    this._updateSegmentBtn();
+  },
 };
 
 // Close menus on outside click
@@ -429,6 +488,7 @@ document.addEventListener('click', (e) => {
 
   [
     ['f-seller-menu','f-seller-btn'],
+    ['f-segment-menu','f-segment-btn'],
     ['f-month-menu','f-month-btn'],
     ['f-year-menu','f-year-btn'],
     ['f-rating-menu','f-rating-btn'],

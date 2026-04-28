@@ -303,6 +303,7 @@ const Renderer = {
       ? (d) => Deal.stage(d).includes('Carteira')
       : (d) => Deal.stage(d).includes('Funil');
     const companyQ = State.getCompanySearch().toLowerCase().trim();
+    const selSegments = State.getSegments();
     stats.createdCount = State.getRaw().deals.filter(d => {
       if (!funnelOk(d)) return false;
       if (!d.created_at) return false;
@@ -310,6 +311,10 @@ const Renderer = {
       if (selMonths.length > 0 && !selMonths.includes(dt.getMonth() + 1)) return false;
       if (selYears.length  > 0 && !selYears.includes(dt.getFullYear()))   return false;
       if (companyQ && !(d.name || '').toLowerCase().includes(companyQ)) return false;
+      if (selSegments.length > 0) {
+        const dealSegs = Deal.segments(d);
+        if (!dealSegs.some(s => selSegments.includes(s))) return false;
+      }
       return true;
     }).length;
 

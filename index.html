@@ -375,6 +375,15 @@ tbody td:first-child{color:var(--text);font-weight:600;}
         <div id="seller-list"></div>
       </div>
     </div>
+    <div style="position:relative;display:inline-block">
+      <button class="filter-select" id="f-segment-btn" onclick="Filters.toggleSegmentMenu(event)" style="cursor:pointer;min-width:160px;text-align:left">Todos os Segmentos</button>
+      <div id="f-segment-menu" style="display:none;position:absolute;top:100%;left:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:8px;z-index:200;min-width:220px;max-height:280px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
+        <label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:12px;cursor:pointer">
+          <input type="checkbox" id="segment-all" checked onchange="Filters.onSegmentAll()"> Todos
+        </label>
+        <div id="segment-list"></div>
+      </div>
+    </div>
     <div style="position:relative;display:inline-block;">
       <input id="company-search" type="text" placeholder="🔍 Empresa..." autocomplete="off"
         oninput="Filters.onCompanySearch(this.value)"
@@ -795,17 +804,17 @@ tbody td:first-child{color:var(--text);font-weight:600;}
   </div>
 </div>
 
-<script src="config.js?v=33"></script>
-<script src="state.js?v=33"></script>
-<script src="utils.js?v=33"></script>
-<script src="auth.js?v=33"></script>
-<script src="api.js?v=33"></script>
-<script src="dashboard.js?v=33"></script>
-<script src="filters.js?v=33"></script>
-<script src="charts.js?v=33"></script>
-<script src="ui.js?v=33"></script>
-<script src="comparison.js?v=33"></script>
-<script src="tasks.js?v=33"></script>
-<script src="boot.js?v=33"></script>
+<script src="config.js?v=34"></script>
+<script src="state.js?v=34"></script>
+<script src="utils.js?v=34"></script>
+<script src="auth.js?v=34"></script>
+<script src="api.js?v=34"></script>
+<script src="dashboard.js?v=34"></script>
+<script src="filters.js?v=34"></script>
+<script src="charts.js?v=34"></script>
+<script src="ui.js?v=34"></script>
+<script src="comparison.js?v=34"></script>
+<script src="tasks.js?v=34"></script>
+<script src="boot.js?v=34"></script>
 </body>
 </html>

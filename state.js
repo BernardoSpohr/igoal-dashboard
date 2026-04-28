@@ -12,6 +12,7 @@ const State = (() => {
   let _selectedStages = [];
   let _selectedStatuses = [];
   let _selectedRatings = [];
+  let _selectedSegments = [];
   let _lineMode = 'deals';
   let _companySearch = '';
   let _autoTimer = null;
@@ -25,6 +26,7 @@ const State = (() => {
     getStages: () => _selectedStages,
     getStatuses: () => _selectedStatuses,
     getRatings: () => _selectedRatings,
+    getSegments: () => _selectedSegments,
     getLineMode: () => _lineMode,
     getCompanySearch: () => _companySearch,
 
@@ -36,6 +38,7 @@ const State = (() => {
     setStages: (arr) => { _selectedStages = arr; },
     setStatuses: (arr) => { _selectedStatuses = arr; },
     setRatings: (arr) => { _selectedRatings = arr; },
+    setSegments: (arr) => { _selectedSegments = arr; },
     setLineMode: (m) => { _lineMode = m; },
     setCompanySearch: (q) => { _companySearch = q; },
 
