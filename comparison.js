@@ -277,19 +277,23 @@ const Comparison = (() => {
   function _renderTable(deals) {
     const tbody = Utils.el('cmp-deals-body');
     if (!deals.length) {
-      tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="ei">💼</div><p>Nenhum negócio encontrado</p></div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8"><div class="empty"><div class="ei">💼</div><p>Nenhum negócio encontrado</p></div></td></tr>';
       return;
     }
-    tbody.innerHTML = deals.slice(0, 200).map(d => {
+    const sorted = [...deals].sort((a, b) => Deal.amount(b) - Deal.amount(a));
+    tbody.innerHTML = sorted.slice(0, 200).map(d => {
       const isWon = Deal.isWon(d), isLost = Deal.isLost(d);
       const lbl = isWon ? 'Vendido' : isLost ? 'Perdido' : Deal.isPaused(d) ? 'Pausado' : 'Em Andamento';
       const cls = isWon ? 't-won'   : isLost ? 't-lost'  : Deal.isPaused(d) ? 't-paused' : 't-open';
+      const segs = Deal.segments(d);
+      const segLbl = segs.length ? Utils.esc(segs.join(', ')) : '—';
       return `<tr>
         <td>${Utils.esc(d.name || '—')}</td>
         <td class="td-mono">R$ ${Utils.fmtCurrency(Deal.amount(d))}</td>
         <td>${Utils.esc(Deal.stage(d))}</td>
         <td><span class="tag ${cls}">${lbl}</span></td>
         <td>${Utils.esc(Deal.seller(d) || '—')}</td>
+        <td>${segLbl}</td>
         <td class="td-mono">${Utils.fmtDate(d.created_at)}</td>
         <td class="td-mono">${d.closed_at ? Utils.fmtDate(d.closed_at) : '—'}</td>
       </tr>`;

@@ -407,7 +407,7 @@ const Renderer = {
     const tbody = Utils.el('deals-body');
 
     if (!deals.length) {
-      tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="ei">💼</div><p>Nenhum negócio encontrado</p></div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8"><div class="empty"><div class="ei">💼</div><p>Nenhum negócio encontrado</p></div></td></tr>';
       return;
     }
 
@@ -421,12 +421,15 @@ const Renderer = {
       const lbl    = isWon ? 'Vendido' : isLost ? 'Perdido' : Deal.isPaused(d) ? 'Pausado' : 'Em Andamento';
       const cls    = isWon ? 't-won'   : isLost ? 't-lost'  : Deal.isPaused(d) ? 't-paused' : 't-open';
       const seller = Utils.esc(Deal.seller(d) || '—');
+      const segs   = Deal.segments(d);
+      const segLbl = segs.length ? Utils.esc(segs.join(', ')) : '—';
       return `<tr onclick="UI.drillDeal(${i})">
         <td>${Utils.esc(d.name || '—')}</td>
         <td class="td-mono">R$ ${Utils.fmtCurrency(Deal.amount(d))}</td>
         <td>${Utils.esc(stage)}</td>
         <td><span class="tag ${cls}">${lbl}</span></td>
         <td>${seller}</td>
+        <td>${segLbl}</td>
         <td class="td-mono">${Utils.fmtDate(d.created_at)}</td>
         <td class="td-mono">${d.closed_at ? Utils.fmtDate(d.closed_at) : '—'}</td>
       </tr>`;
