@@ -81,4 +81,49 @@ const UI = {
       <div class="modal-field-value">${value}</div>
     </div>`;
   },
+
+  exportDealsExcel() {
+    const deals = Renderer._tableDeals || [];
+    if (!deals.length) {
+      alert('Nenhum negócio para exportar.');
+      return;
+    }
+
+    const headers = ['Nome', 'Valor (R$)', 'Etapa', 'Status', 'Responsável', 'Segmento', 'Origem', 'Criado em', 'Fechado em'];
+
+    const escape = (v) => {
+      const s = String(v ?? '').replace(/"/g, '""');
+      return `"${s}"`;
+    };
+
+    const statusLabel = (d) =>
+      Deal.isWon(d) ? 'Vendido' :
+      Deal.isLost(d) ? 'Perdido' :
+      Deal.isPaused(d) ? 'Pausado' : 'Em Andamento';
+
+    const rows = deals.map(d => [
+      d.name || '—',
+      Deal.amount(d).toFixed(2).replace('.', ','),
+      Deal.stage(d),
+      statusLabel(d),
+      Deal.seller(d) || '—',
+      Deal.segments(d).join(', ') || '—',
+      Deal.source(d),
+      Utils.fmtDate(d.created_at),
+      d.closed_at ? Utils.fmtDate(d.closed_at) : '—',
+    ].map(escape).join(';'));
+
+    const csv = [headers.map(escape).join(';'), ...rows].join('\r\n');
+    const bom = '﻿'; // UTF-8 BOM para Excel ler acentos
+    const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const today = new Date().toISOString().slice(0, 10);
+    link.href = url;
+    link.download = `negocios-${today}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  },
 };

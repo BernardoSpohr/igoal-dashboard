@@ -489,7 +489,17 @@ tbody td:first-child{color:var(--text);font-weight:600;}
     <div class="table-card">
       <div class="table-top">
         <div><div class="card-title">Lista de Negócios</div><div class="card-sub">Clique em uma linha para detalhes</div></div>
-        <span id="tbl-count" style="font-size:11px;color:var(--text4)"></span>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span id="tbl-count" style="font-size:11px;color:var(--text4)"></span>
+          <button onclick="UI.exportDealsExcel()" style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#107C41;color:#fff;border:none;border-radius:6px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,0.08)" onmouseover="this.style.background='#0E6B38'" onmouseout="this.style.background='#107C41'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M14 2v6h6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M9 13l6 6M15 13l-6 6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Exportar para Excel
+          </button>
+        </div>
       </div>
       <div class="t-scroll">
         <table>
@@ -813,17 +823,17 @@ tbody td:first-child{color:var(--text);font-weight:600;}
   </div>
 </div>
 
-<script src="config.js?v=37"></script>
-<script src="state.js?v=37"></script>
-<script src="utils.js?v=37"></script>
-<script src="auth.js?v=37"></script>
-<script src="api.js?v=37"></script>
-<script src="dashboard.js?v=37"></script>
-<script src="filters.js?v=37"></script>
-<script src="charts.js?v=37"></script>
-<script src="ui.js?v=37"></script>
-<script src="comparison.js?v=37"></script>
-<script src="tasks.js?v=37"></script>
-<script src="boot.js?v=37"></script>
+<script src="config.js?v=38"></script>
+<script src="state.js?v=38"></script>
+<script src="utils.js?v=38"></script>
+<script src="auth.js?v=38"></script>
+<script src="api.js?v=38"></script>
+<script src="dashboard.js?v=38"></script>
+<script src="filters.js?v=38"></script>
+<script src="charts.js?v=38"></script>
+<script src="ui.js?v=38"></script>
+<script src="comparison.js?v=38"></script>
+<script src="tasks.js?v=38"></script>
+<script src="boot.js?v=38"></script>
 </body>
 </html>
